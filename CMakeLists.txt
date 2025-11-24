@@ -15,6 +15,7 @@ find_package(VulkanMemoryAllocator REQUIRED)
 find_package(nanovdb REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(sol2 REQUIRED)  # Lua bindings
+find_package(glm REQUIRED)   # Math library
 
 # Include directories for the project
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -34,6 +34,9 @@ set(FLUIDLOOM_SOURCES
     # Refinement system (dynamic topology adaptation)
     refinement/RefinementManager.cpp
     refinement/TopologyRebuilder.cpp
+
+    # Visualization system (volume rendering)
+    vis/VolumeRenderer.cpp
 )
 
 # Create static library
@@ -49,6 +52,7 @@ target_link_libraries(fluidloom
         nanovdb::nanovdb
         spdlog::spdlog
         sol2::sol2
+        glm::glm
 )
 
 # Set include directories
