@@ -11,6 +11,9 @@ set(FLUIDLOOM_SOURCES
 
     # Domain decomposition
     domain/DomainSplitter.cpp
+
+    # Field system
+    field/FieldRegistry.cpp
 )
 
 # Create static library
