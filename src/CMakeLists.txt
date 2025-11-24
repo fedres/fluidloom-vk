@@ -14,6 +14,10 @@ set(FLUIDLOOM_SOURCES
 
     # Field system
     field/FieldRegistry.cpp
+
+    # Halo exchange system
+    halo/HaloManager.cpp
+    halo/HaloSync.cpp
 )
 
 # Create static library
