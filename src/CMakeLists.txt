@@ -1,7 +1,27 @@
 # Source files (.cpp)
-# Add source files here as the project grows
+set(FLUIDLOOM_SOURCES
+    # Core infrastructure
+    core/Logger.cpp
+    core/VulkanContext.cpp
+    core/MemoryAllocator.cpp
+)
 
-# Create library or executable
-# add_library(fluidloom STATIC ${SOURCES})
-# OR
-# add_executable(fluidloom_app main.cpp)
+# Create static library
+add_library(fluidloom STATIC ${FLUIDLOOM_SOURCES})
+
+# Link dependencies
+target_link_libraries(fluidloom
+    PUBLIC
+        Vulkan::Vulkan
+        vk-bootstrap::vk-bootstrap
+        volk::volk
+        GPUOpen::VulkanMemoryAllocator
+        nanovdb::nanovdb
+        spdlog::spdlog
+)
+
+# Set include directories
+target_include_directories(fluidloom
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
