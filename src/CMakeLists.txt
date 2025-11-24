@@ -26,6 +26,10 @@ set(FLUIDLOOM_SOURCES
     # Execution graph (DAG scheduler)
     graph/DependencyGraph.cpp
     graph/GraphExecutor.cpp
+
+    # Lua scripting
+    script/LuaContext.cpp
+    script/SimulationEngine.cpp
 )
 
 # Create static library
@@ -40,6 +44,7 @@ target_link_libraries(fluidloom
         GPUOpen::VulkanMemoryAllocator
         nanovdb::nanovdb
         spdlog::spdlog
+        sol2::sol2
 )
 
 # Set include directories
