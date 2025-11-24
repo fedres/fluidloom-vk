@@ -1,0 +1,90 @@
+name: FluidLoom Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          git \
+          liblua5.4-dev \
+          libssl-dev \
+          libvulkan-dev \
+          libvulkan1 \
+          vulkan-tools \
+          ca-certificates
+
+    - name: Download Vulkan SDK
+      run: |
+        cd /tmp
+        wget -q https://sdk.lunarg.com/sdk/download/1.3.275/linux/vulkansdk-linux-x86_64-1.3.275.0.tar.xz
+        tar -xf vulkansdk-linux-x86_64-1.3.275.0.tar.xz
+        sudo mkdir -p /opt/vulkan
+        sudo mv 1.3.275/* /opt/vulkan/
+        echo "PATH=/opt/vulkan/x86_64/bin:$PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=/opt/vulkan/x86_64/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "VK_SDK_PATH=/opt/vulkan/x86_64" >> $GITHUB_ENV
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure CMake
+      working-directory: build
+      run: |
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=20 \
+          -GNinja
+
+    - name: Build
+      working-directory: build
+      run: ninja
+
+    - name: Run Tests
+      working-directory: build
+      run: |
+        ./tests/fluidloom_tests -s
+      continue-on-error: false
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: build/test-results.txt
+        retention-days: 30
+
+  code-quality:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Run clang-format check
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+        find src include tests -name "*.cpp" -o -name "*.hpp" | while read file; do
+          if ! clang-format --dry-run --Werror "$file" > /dev/null 2>&1; then
+            echo "❌ Formatting issue in $file"
+            exit 1
+          fi
+        done
+        echo "✅ All files properly formatted"
+      continue-on-error: true
