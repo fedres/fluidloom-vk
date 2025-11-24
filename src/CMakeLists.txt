@@ -4,6 +4,13 @@ set(FLUIDLOOM_SOURCES
     core/Logger.cpp
     core/VulkanContext.cpp
     core/MemoryAllocator.cpp
+
+    # NanoVDB integration
+    nanovdb_adapter/GridLoader.cpp
+    nanovdb_adapter/GpuGridManager.cpp
+
+    # Domain decomposition
+    domain/DomainSplitter.cpp
 )
 
 # Create static library
