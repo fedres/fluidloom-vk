@@ -1,7 +1,11 @@
 # Test configuration
 
 # Find Catch2 testing framework
-find_package(Catch2 CONFIG REQUIRED)
+find_package(Catch2 CONFIG QUIET)
+if(NOT Catch2_FOUND)
+    message(STATUS "Catch2 not found - tests will be skipped")
+    return()
+endif()
 
 # Test executable
 add_executable(fluidloom_tests

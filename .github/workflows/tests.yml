@@ -2,9 +2,9 @@ name: FluidLoom Tests
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master, main, develop ]
+    branches: [ main, develop ]
 
 jobs:
   test:
@@ -27,9 +27,29 @@ jobs:
           libssl-dev \
           libvulkan-dev \
           libvulkan1 \
+          libvulkan-1.so.1 \
           vulkan-tools \
           vulkan-validationlayers \
-          ca-certificates
+          vulkan-validationlayers-dev \
+          ca-certificates \
+          mesa-vulkan-drivers \
+          libxcb-randr0 \
+          libxcb-xfixes0 \
+          libxcb-xkb1 \
+          libxkbcommon-x11-0
+
+    - name: Verify Vulkan installation
+      run: |
+        echo "=== Vulkan Tools ==="
+        vulkaninfo --summary 2>&1 | head -30 || echo "vulkaninfo available"
+        echo ""
+        echo "=== Vulkan Libraries ==="
+        ldconfig -p | grep vulkan || echo "Vulkan libraries:"
+        ls -la /usr/lib/x86_64-linux-gnu/ | grep -i vulkan || true
+        echo ""
+        echo "=== Environment ==="
+        echo "VK_DRIVER_FILES=${VK_DRIVER_FILES:-not set}"
+        echo "VK_ICD_FILENAMES=${VK_ICD_FILENAMES:-not set}"
 
     - name: Create build directory
       run: mkdir -p build
@@ -56,13 +76,28 @@ jobs:
     - name: Run Tests
       working-directory: build
       run: |
-        echo "Running test suite..."
+        echo "Running test suite on Linux with Vulkan support..."
+        echo "Expected: 28/28 tests should pass (all GPU tests supported on Linux)"
+        echo ""
+
+        # Set up Vulkan environment variables
+        export VK_INSTANCE_LAYERS=""  # No validation layers in CI
+
+        # Run tests with verbose output
         ./tests/fluidloom_tests -s 2>&1 | tee test-output.log
         exit_code=${PIPESTATUS[0]}
+
+        echo ""
+        echo "Test execution completed with exit code: $exit_code"
+
         if [ $exit_code -ne 0 ]; then
-          echo "Tests failed with exit code: $exit_code"
-          echo "Last 50 lines of output:"
-          tail -50 test-output.log
+          echo ""
+          echo "❌ Tests failed!"
+          echo "Last 100 lines of output:"
+          tail -100 test-output.log
+        else
+          echo ""
+          echo "✅ All tests passed!"
         fi
         exit $exit_code
       continue-on-error: false

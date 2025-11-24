@@ -4,9 +4,11 @@ project(FluidLoom)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add Homebrew paths for M1/M2 Macs
-list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
-set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+# Add Homebrew paths for M1/M2 Macs (if they exist)
+if(EXISTS "/opt/homebrew")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+    set(ENV{PKG_CONFIG_PATH} "/opt/homebrew/lib/pkgconfig:$ENV{PKG_CONFIG_PATH}")
+endif()
 
 # Enable find_package to look in standard locations
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -41,7 +43,9 @@ endif()
 
 # Include directories for the project
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories("/opt/homebrew/include")
+if(EXISTS "/opt/homebrew/include")
+    include_directories("/opt/homebrew/include")
+endif()
 
 # Add source directories
 add_subdirectory(src)

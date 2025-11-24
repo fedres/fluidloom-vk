@@ -22,6 +22,7 @@ set(FLUIDLOOM_SOURCES
     # Stencil system
     stencil/ShaderGenerator.cpp
     stencil/StencilRegistry.cpp
+    stencil/StencilParser.cpp
     stencil/PipelineCache.cpp
 
     # Execution graph (DAG scheduler)
@@ -49,7 +50,6 @@ add_library(fluidloom STATIC ${FLUIDLOOM_SOURCES})
 # Link dependencies
 target_link_libraries(fluidloom
     PUBLIC
-        Vulkan::Vulkan
         Vulkan::Vulkan
         vk-bootstrap::vk-bootstrap
 )
@@ -99,7 +99,6 @@ target_include_directories(fluidloom
         ${CMAKE_CURRENT_SOURCE_DIR}/../external
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/spdlog/include  # External spdlog first
         ${CMAKE_CURRENT_SOURCE_DIR}/../external/openvdb/nanovdb
-        $ENV{HOME}/vcpkg/installed/arm64-osx/include  # vcpkg last
 )
 
 
