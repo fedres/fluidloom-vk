@@ -18,6 +18,10 @@ set(FLUIDLOOM_SOURCES
     # Halo exchange system
     halo/HaloManager.cpp
     halo/HaloSync.cpp
+
+    # Stencil system
+    stencil/ShaderGenerator.cpp
+    stencil/StencilRegistry.cpp
 )
 
 # Create static library
