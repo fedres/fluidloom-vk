@@ -1,15 +1,33 @@
-FROM khronosgroup/vulkan-sdk:latest.ubuntu22.04
+FROM ubuntu:22.04
 
 # Set non-interactive mode
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install additional dependencies
+# Install build essentials and dependencies
 RUN apt-get update && apt-get install -y \
+    build-essential \
     cmake \
     ninja-build \
     git \
     liblua5.4-dev \
+    libssl-dev \
+    wget \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install Vulkan SDK 1.3.275
+RUN wget -q https://sdk.lunarg.com/sdk/download/1.3.275/linux/vulkansdk-linux-x86_64-1.3.275.0.tar.xz && \
+    tar -xf vulkansdk-linux-x86_64-1.3.275.0.tar.xz && \
+    rm vulkansdk-linux-x86_64-1.3.275.0.tar.xz && \
+    mv 1.3.275 /opt/vulkan && \
+    echo 'export PATH=/opt/vulkan/x86_64/bin:$PATH' >> /etc/profile.d/vulkan.sh && \
+    echo 'export LD_LIBRARY_PATH=/opt/vulkan/x86_64/lib:$LD_LIBRARY_PATH' >> /etc/profile.d/vulkan.sh && \
+    . /etc/profile.d/vulkan.sh
+
+# Set environment variables for the build
+ENV PATH="/opt/vulkan/x86_64/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/vulkan/x86_64/lib:${LD_LIBRARY_PATH}"
+ENV VK_SDK_PATH="/opt/vulkan/x86_64"
 
 # Copy the project
 WORKDIR /fluidloom
