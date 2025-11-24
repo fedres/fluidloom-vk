@@ -1,0 +1,157 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  cppcheck:
+    name: Static Analysis (cppcheck)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install cppcheck
+      run: sudo apt-get install -y cppcheck
+
+    - name: Run cppcheck
+      run: |
+        cppcheck \
+          --enable=all \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --error-exitcode=1 \
+          --std=c++20 \
+          src/ include/ tests/
+
+  clang-tidy:
+    name: Clang-Tidy Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          clang-tidy \
+          libvulkan-dev \
+          libglm-dev \
+          libspdlog-dev \
+          ninja-build
+
+    - name: Setup Vulkan SDK
+      uses: lunarg/setup-vulkan-sdk@v1
+      with:
+        vulkan-query-version: 1.3.268.0
+        vulkan-components: Vulkan-Headers,Vulkan-Loader
+        cache: true
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Generate compile database
+      run: |
+        cd build
+        cmake .. -G "Ninja" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: Run clang-tidy
+      run: |
+        cd build
+        clang-tidy -p . ../src/**/*.cpp ../tests/**/*.cpp \
+          --checks='-*,\
+          readability-*,\
+          performance-*,\
+          modernize-*,\
+          bugprone-*,\
+          clang-analyzer-*' \
+          --warnings-as-errors='*'
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libvulkan-dev \
+          vulkan-tools \
+          libglm-dev \
+          libspdlog-dev \
+          lcov \
+          ninja-build
+
+    - name: Setup Vulkan SDK
+      uses: lunarg/setup-vulkan-sdk@v1
+      with:
+        vulkan-query-version: 1.3.268.0
+        vulkan-components: Vulkan-Headers,Vulkan-Loader
+        cache: true
+
+    - name: Create build directory
+      run: mkdir -p build
+
+    - name: Configure CMake with coverage
+      run: |
+        cd build
+        cmake .. \
+          -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+
+    - name: Build with coverage
+      run: |
+        cd build
+        cmake --build .
+
+    - name: Run tests for coverage
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Generate coverage report
+      run: |
+        cd build
+        lcov --directory . --capture --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' '*/external/*' --output-file coverage.info
+        lcov --list coverage.info
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./build/coverage.info
+        fail_ci_if_error: false
+        verbose: true
+
+  format-check:
+    name: Code Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: sudo apt-get install -y clang-format
+
+    - name: Check code formatting
+      run: |
+        # Check if code matches clang-format style
+        find src include tests -name "*.cpp" -o -name "*.hpp" | while read file; do
+          if ! clang-format --dry-run --Werror "$file" > /dev/null 2>&1; then
+            echo "File $file is not formatted correctly"
+            clang-format --output-replacements-xml "$file"
+            exit 1
+          fi
+        done
