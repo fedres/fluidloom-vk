@@ -33,13 +33,19 @@ jobs:
     - name: Download Vulkan SDK
       run: |
         cd /tmp
-        wget -q https://sdk.lunarg.com/sdk/download/1.3.275/linux/vulkansdk-linux-x86_64-1.3.275.0.tar.xz
-        tar -xf vulkansdk-linux-x86_64-1.3.275.0.tar.xz
-        sudo mkdir -p /opt/vulkan
-        sudo mv 1.3.275/* /opt/vulkan/
-        echo "PATH=/opt/vulkan/x86_64/bin:$PATH" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=/opt/vulkan/x86_64/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        echo "VK_SDK_PATH=/opt/vulkan/x86_64" >> $GITHUB_ENV
+        echo "Downloading Vulkan SDK 1.3.275..."
+        if ! wget -q --timeout=60 https://sdk.lunarg.com/sdk/download/1.3.275/linux/vulkansdk-linux-x86_64-1.3.275.0.tar.xz 2>/dev/null; then
+          echo "Failed to download from LunarG, trying alternative URL..."
+          apt-get update && apt-get install -y vulkan-sdk 2>/dev/null || true
+        else
+          echo "Extracting Vulkan SDK..."
+          tar -xf vulkansdk-linux-x86_64-1.3.275.0.tar.xz
+          sudo mkdir -p /opt/vulkan
+          sudo mv 1.3.275/* /opt/vulkan/ 2>/dev/null || true
+          echo "PATH=/opt/vulkan/x86_64/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/vulkan/x86_64/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "VK_SDK_PATH=/opt/vulkan/x86_64" >> $GITHUB_ENV
+        fi
 
     - name: Create build directory
       run: mkdir -p build
@@ -54,12 +60,27 @@ jobs:
 
     - name: Build
       working-directory: build
-      run: ninja
+      run: |
+        echo "Starting build..."
+        ninja -v 2>&1 | tee build.log
+        if [ ${PIPESTATUS[0]} -ne 0 ]; then
+          echo "Build failed! Last 100 lines of output:"
+          tail -100 build.log
+          exit 1
+        fi
 
     - name: Run Tests
       working-directory: build
       run: |
-        ./tests/fluidloom_tests -s
+        echo "Running test suite..."
+        ./tests/fluidloom_tests -s 2>&1 | tee test-output.log
+        exit_code=${PIPESTATUS[0]}
+        if [ $exit_code -ne 0 ]; then
+          echo "Tests failed with exit code: $exit_code"
+          echo "Last 50 lines of output:"
+          tail -50 test-output.log
+        fi
+        exit $exit_code
       continue-on-error: false
 
     - name: Upload test results
