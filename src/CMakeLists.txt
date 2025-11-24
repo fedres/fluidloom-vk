@@ -30,6 +30,10 @@ set(FLUIDLOOM_SOURCES
     # Lua scripting
     script/LuaContext.cpp
     script/SimulationEngine.cpp
+
+    # Refinement system (dynamic topology adaptation)
+    refinement/RefinementManager.cpp
+    refinement/TopologyRebuilder.cpp
 )
 
 # Create static library
