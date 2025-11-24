@@ -22,6 +22,10 @@ set(FLUIDLOOM_SOURCES
     # Stencil system
     stencil/ShaderGenerator.cpp
     stencil/StencilRegistry.cpp
+
+    # Execution graph (DAG scheduler)
+    graph/DependencyGraph.cpp
+    graph/GraphExecutor.cpp
 )
 
 # Create static library
