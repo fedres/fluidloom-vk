@@ -2,7 +2,9 @@
 
 #include "core/MemoryAllocator.hpp"
 #include <nanovdb/NanoVDB.h>
-#include <nanovdb/util/GridBuilder.h>
+#include <nanovdb/GridHandle.h>
+#include <nanovdb/HostBuffer.h>
+#include <nanovdb/tools/GridBuilder.h>
 #include <vulkan/vulkan.hpp>
 #include <cstdint>
 

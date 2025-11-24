@@ -1,0 +1,313 @@
+Randomness seeded to: 2809744187
+[14:59:26.314] [info] [thread 74906594] Logger initialized successfully
+[14:59:26.315] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.315] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.315] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.315] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.315] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.315] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.315] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.316] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.316] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+fluidloom_tests is a Catch2 v3.11.0 host application.
+Run with -? for options
+
+-------------------------------------------------------------------------------
+Load balancing with gradient grid
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestDomain.cpp:58
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.316] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.316] [info] [thread 74906594] Execution schedule built: 4 stencils
+[14:59:26.316] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.316] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.316] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.316] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.316] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.316] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.316] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.316] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.316] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Logger initialization
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:14
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.316] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.316] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.316] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.316] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.316] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.316] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.316] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.317] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.317] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Buffer allocation and readback
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:70
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.317] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.317] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.317] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.317] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.317] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.317] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.317] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.317] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.317] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Grid creation
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:130
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.317] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.317] [info] [thread 74906594] Execution schedule built: 3 stencils
+[14:59:26.317] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.317] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.317] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.317] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.317] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.317] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.317] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.317] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.317] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Multiple field registration
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:175
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+-------------------------------------------------------------------------------
+Cycle detection - no cycle
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:112
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:112: FAILED:
+due to unexpected exception with message:
+  map::at:  key not found
+
+[14:59:26.317] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.317] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.317] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.317] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.317] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.317] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.317] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.318] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.318] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Field registration
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:159
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+-------------------------------------------------------------------------------
+Cycle detection - simple cycle
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:99
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:99: FAILED:
+due to unexpected exception with message:
+  map::at:  key not found
+
+[14:59:26.318] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.318] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.318] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.318] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.318] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.318] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.318] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.318] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.318] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Single GPU domain decomposition
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestDomain.cpp:24
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.318] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.318] [info] [thread 74906594] Execution schedule built: 1 stencils
+[14:59:26.318] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.318] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.318] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.318] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.318] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.318] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.318] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.318] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.318] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Domain neighbor computation
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestDomain.cpp:41
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.318] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.318] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.318] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.318] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.318] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.318] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.318] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.319] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.319] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Vulkan context creation
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:25
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.319] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.319] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.319] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.319] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.319] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.319] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.319] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.319] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.319] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Memory allocator initialization
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:36
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.319] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.323] [info] [thread 74906594] Execution schedule built: 100 stencils
+[14:59:26.324] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.324] [info] [thread 74906594] Execution schedule built: 0 stencils
+[14:59:26.324] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.324] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.324] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.324] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.324] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.324] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.324] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.324] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.324] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Gradient grid creation
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:141
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.324] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.324] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.324] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.324] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.324] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.324] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.324] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.325] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.325] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Empty domain handling
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestDomain.cpp:75
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+[14:59:26.325] [info] [thread 74906594] Building execution schedule from dependency graph
+[14:59:26.325] [info] [thread 74906594] Execution schedule built: 2 stencils
+-------------------------------------------------------------------------------
+Cycle detection - complex cycle
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:124
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/TestGraph.cpp:124: FAILED:
+due to unexpected exception with message:
+  map::at:  key not found
+
+[14:59:26.325] [info] [thread 74906594] Set VK_ICD_FILENAMES to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[14:59:26.325] [info] [thread 74906594] Initializing volk (Vulkan meta-loader)...
+[14:59:26.325] [info] [thread 74906594] Loaded Vulkan library successfully
+[14:59:26.325] [info] [thread 74906594] Volk initialized successfully with custom loader
+[14:59:26.325] [info] [thread 74906594] Vulkan-HPP dispatcher will be initialized after instance creation
+[14:59:26.325] [info] [thread 74906594] Creating Vulkan instance...
+[14:59:26.325] [info] [thread 74906594] Enabled portability enumeration for macOS/MoltenVK
+[14:59:26.325] [error] [thread 74906594] CHECK FAILED: Failed to create Vulkan instance
+[14:59:26.325] [error] [thread 74906594] Failed to create logical device: CHECK FAILED: Failed to create Vulkan instance
+-------------------------------------------------------------------------------
+Field lookup by name
+-------------------------------------------------------------------------------
+/Users/karthikt/fluidloom/tests/TestCore.cpp:194
+...............................................................................
+
+/Users/karthikt/fluidloom/tests/VulkanFixture.hpp:131: FAILED:
+explicitly with message:
+  Failed to initialize VulkanFixture: CHECK FAILED: Failed to create Vulkan
+  instance
+
+===============================================================================
+test cases:  28 |  12 passed | 16 failed
+assertions: 143 | 127 passed | 16 failed
+

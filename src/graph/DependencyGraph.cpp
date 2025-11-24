@@ -178,6 +178,30 @@ std::string DependencyGraph::exportDOT() const {
 }
 
 bool DependencyGraph::hasCycle() const {
+    // Build adjacency list locally for cycle detection
+    std::map<std::string, std::vector<std::string>> adjacencyList;
+
+    // Compute dependencies based on read/write conflicts
+    for (const auto& [name, node] : m_nodes) {
+        // For each field this node writes
+        for (const auto& writeField : node.writes) {
+            // Find all nodes that read this field
+            for (const auto& [otherName, otherNode] : m_nodes) {
+                if (otherName == name) continue; // Skip self
+
+                // If other node reads a field we write, add edge
+                if (std::find(otherNode.reads.begin(), otherNode.reads.end(), writeField)
+                    != otherNode.reads.end()) {
+                    // We must run before otherNode
+                    if (std::find(adjacencyList[name].begin(), adjacencyList[name].end(), otherName)
+                        == adjacencyList[name].end()) {
+                        adjacencyList[name].push_back(otherName);
+                    }
+                }
+            }
+        }
+    }
+
     // Color-based cycle detection (white=0, gray=1, black=2)
     std::map<std::string, int> color;
     for (const auto& [name, _] : m_nodes) {
@@ -187,12 +211,15 @@ bool DependencyGraph::hasCycle() const {
     std::function<bool(const std::string&)> hasCycleDFS = [&](const std::string& node) -> bool {
         color[node] = 1; // gray
 
-        for (const auto& dependent : m_adjacencyList.at(node)) {
-            if (color[dependent] == 1) {
-                return true; // Back edge (cycle)
-            }
-            if (color[dependent] == 0 && hasCycleDFS(dependent)) {
-                return true;
+        auto it = adjacencyList.find(node);
+        if (it != adjacencyList.end()) {
+            for (const auto& dependent : it->second) {
+                if (color[dependent] == 1) {
+                    return true; // Back edge (cycle)
+                }
+                if (color[dependent] == 0 && hasCycleDFS(dependent)) {
+                    return true;
+                }
             }
         }
 

@@ -3,8 +3,7 @@
 #include "nanovdb_adapter/GridLoader.hpp"
 #include "field/FieldRegistry.hpp"
 
-#include <catch2/catch.hpp>
-#include <nanovdb/GridBuilder.h>
+#include <catch2/catch_all.hpp>
 
 /**
  * Test Suite: Core Infrastructure
@@ -43,15 +42,15 @@ TEST_CASE_METHOD(VulkanFixture, "Memory allocator initialization", "[core][memor
     auto buf = alloc.allocateBuffer(
         256,
         vk::BufferUsageFlagBits::eUniformBuffer,
-        vma::MemoryUsage::eCpuToGpu,
+        VMA_MEMORY_USAGE_CPU_TO_GPU,
         "TestBuffer");
 
-    REQUIRE(buf.buffer);
+    REQUIRE(buf.handle);
     REQUIRE(buf.size == 256);
     REQUIRE(buf.allocation);
 
     // Test mapping
-    float* data = alloc.mapBuffer(buf);
+    float* data = static_cast<float*>(alloc.mapBuffer(buf));
     REQUIRE(data != nullptr);
 
     // Write test data
@@ -60,8 +59,8 @@ TEST_CASE_METHOD(VulkanFixture, "Memory allocator initialization", "[core][memor
     alloc.unmapBuffer(buf);
 
     // Read back
-    float* readData = alloc.mapBuffer(buf);
-    REQUIRE(readData[0] == Approx(3.14f));
+    float* readData = static_cast<float*>(alloc.mapBuffer(buf));
+    REQUIRE(readData[0] == Catch::Approx(3.14f));
     alloc.unmapBuffer(buf);
 
     // Cleanup
@@ -78,45 +77,44 @@ TEST_CASE_METHOD(VulkanFixture, "Buffer allocation and readback", "[core][memory
     auto gpuBuf = alloc.allocateBuffer(
         testData.size() * sizeof(float),
         vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-        vma::MemoryUsage::eGpuOnly,
+        VMA_MEMORY_USAGE_GPU_ONLY,
         "TestGPUBuffer");
 
     // Upload via staging buffer
     auto stagingBuf = alloc.allocateBuffer(
         testData.size() * sizeof(float),
         vk::BufferUsageFlagBits::eTransferSrc,
-        vma::MemoryUsage::eCpuToGpu,
+        VMA_MEMORY_USAGE_CPU_TO_GPU,
         "TestStagingBuffer");
 
-    float* stagingPtr = alloc.mapBuffer(stagingBuf);
+    float* stagingPtr = static_cast<float*>(alloc.mapBuffer(stagingBuf));
     std::memcpy(stagingPtr, testData.data(), testData.size() * sizeof(float));
     alloc.unmapBuffer(stagingBuf);
 
     // Copy to GPU
     auto cmd = beginCommand();
-    vk::BufferCopy region{};
-    region.size = testData.size() * sizeof(float);
-    cmd.copyBuffer(stagingBuf.buffer, gpuBuf.buffer, region);
+    vk::BufferCopy region(0, 0, testData.size() * sizeof(float));
+    cmd.copyBuffer(stagingBuf.handle, gpuBuf.handle, 1, &region);
     endCommand(cmd);
 
     // Download back to CPU (via another staging buffer)
     auto readbackBuf = alloc.allocateBuffer(
         testData.size() * sizeof(float),
         vk::BufferUsageFlagBits::eTransferDst,
-        vma::MemoryUsage::eGpuToCpu,
+        VMA_MEMORY_USAGE_GPU_TO_CPU,
         "TestReadbackBuffer");
 
     cmd = beginCommand();
     region.srcOffset = 0;
     region.dstOffset = 0;
     region.size = testData.size() * sizeof(float);
-    cmd.copyBuffer(gpuBuf.buffer, readbackBuf.buffer, region);
+    cmd.copyBuffer(gpuBuf.handle, readbackBuf.handle, 1, &region);
     endCommand(cmd);
 
     // Verify data
-    float* readPtr = alloc.mapBuffer(readbackBuf);
+    float* readPtr = static_cast<float*>(alloc.mapBuffer(readbackBuf));
     for (size_t i = 0; i < testData.size(); ++i) {
-        REQUIRE(readPtr[i] == Approx(testData[i]));
+        REQUIRE(readPtr[i] == Catch::Approx(testData[i]));
     }
     alloc.unmapBuffer(readbackBuf);
 
@@ -152,7 +150,7 @@ TEST_CASE_METHOD(VulkanFixture, "Gradient grid creation", "[nanovdb][grid]")
 
     // Verify some values
     auto value00 = gridPtr->tree().getValue(nanovdb::Coord(0, 0, 0));
-    REQUIRE(value00 == Approx(0.0f));
+    REQUIRE(value00 == Catch::Approx(0.0f));
 }
 
 /**
@@ -160,45 +158,59 @@ TEST_CASE_METHOD(VulkanFixture, "Gradient grid creation", "[nanovdb][grid]")
  */
 TEST_CASE_METHOD(VulkanFixture, "Field registration", "[field][registry]")
 {
-    field::FieldRegistry registry;
+    auto& ctx = getContext();
+    auto& alloc = getAllocator();
+
+    // Create field registry with 1024 active voxels
+    field::FieldRegistry registry(ctx, alloc, 1024);
 
     // Register a field
-    registry.registerField("density", vk::Format::eR32Sfloat);
+    auto& field = registry.registerField("density", vk::Format::eR32Sfloat);
 
     // Verify it exists
-    REQUIRE(registry.getField("density") != nullptr);
-    REQUIRE(registry.getFieldCount() == 1);
+    REQUIRE(!field.name.empty());
+    REQUIRE(field.format == vk::Format::eR32Sfloat);
 }
 
 TEST_CASE_METHOD(VulkanFixture, "Multiple field registration", "[field][registry]")
 {
-    field::FieldRegistry registry;
+    auto& ctx = getContext();
+    auto& alloc = getAllocator();
+
+    // Create field registry
+    field::FieldRegistry registry(ctx, alloc, 1024);
 
     // Register multiple fields
-    registry.registerField("density", vk::Format::eR32Sfloat);
-    registry.registerField("velocity", vk::Format::eR32G32B32Sfloat);
-    registry.registerField("pressure", vk::Format::eR32Sfloat);
+    auto& density = registry.registerField("density", vk::Format::eR32Sfloat);
+    auto& velocity = registry.registerField("velocity", vk::Format::eR32G32B32Sfloat);
+    auto& pressure = registry.registerField("pressure", vk::Format::eR32Sfloat);
 
     REQUIRE(registry.getFieldCount() == 3);
-    REQUIRE(registry.getField("density") != nullptr);
-    REQUIRE(registry.getField("velocity") != nullptr);
-    REQUIRE(registry.getField("pressure") != nullptr);
+    REQUIRE(density.name == "density");
+    REQUIRE(velocity.name == "velocity");
+    REQUIRE(pressure.name == "pressure");
 }
 
-TEST_CASE_METHOD(VulkanFixture, "Field lookup by index", "[field][registry]")
+TEST_CASE_METHOD(VulkanFixture, "Field lookup by name", "[field][registry]")
 {
-    field::FieldRegistry registry;
+    auto& ctx = getContext();
+    auto& alloc = getAllocator();
 
-    registry.registerField("density", vk::Format::eR32Sfloat);
-    registry.registerField("velocity", vk::Format::eR32G32B32Sfloat);
+    // Create field registry
+    field::FieldRegistry registry(ctx, alloc, 1024);
 
-    auto* field0 = registry.getFieldByIndex(0);
-    auto* field1 = registry.getFieldByIndex(1);
+    auto& density = registry.registerField("density", vk::Format::eR32Sfloat);
+    auto& velocity = registry.registerField("velocity", vk::Format::eR32G32B32Sfloat);
 
-    REQUIRE(field0 != nullptr);
-    REQUIRE(field1 != nullptr);
-    REQUIRE(field0->name == "density");
-    REQUIRE(field1->name == "velocity");
+    // Verify fields can be looked up by name
+    REQUIRE(registry.hasField("density"));
+    REQUIRE(registry.hasField("velocity"));
+    REQUIRE(!registry.hasField("pressure"));
+
+    const auto& densityRef = registry.getField("density");
+    const auto& velocityRef = registry.getField("velocity");
+    REQUIRE(densityRef.name == "density");
+    REQUIRE(velocityRef.name == "velocity");
 }
 
 /**

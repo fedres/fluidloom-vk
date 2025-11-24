@@ -1,4 +1,6 @@
 #define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <vk_mem_alloc.h>
 
 #include "core/MemoryAllocator.hpp"
@@ -48,13 +50,13 @@ MemoryAllocator::~MemoryAllocator() {
 
 MemoryAllocator::Buffer MemoryAllocator::createBuffer(vk::DeviceSize size,
                                                        vk::BufferUsageFlags usage,
-                                                       VmaMemoryUsage memoryUsage) {
+                                                       VmaMemoryUsage memoryUsage,
+                                                       const char* name) {
     // Create buffer info using C++ API
-    vk::BufferCreateInfo bufferInfo{
-        .size = size,
-        .usage = usage,
-        .sharingMode = vk::SharingMode::eExclusive
-    };
+    vk::BufferCreateInfo bufferInfo;
+    bufferInfo.setSize(size);
+    bufferInfo.setUsage(usage);
+    bufferInfo.setSharingMode(vk::SharingMode::eExclusive);
 
     // Convert to C structure for VMA
     VkBufferCreateInfo vkBufferInfo = bufferInfo;
@@ -69,6 +71,10 @@ MemoryAllocator::Buffer MemoryAllocator::createBuffer(vk::DeviceSize size,
         allocInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
                           VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
+    
+    if (usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+        allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT; 
+    }
 
     Buffer buffer = {};
     buffer.size = size;
@@ -82,11 +88,11 @@ MemoryAllocator::Buffer MemoryAllocator::createBuffer(vk::DeviceSize size,
     buffer.handle = vk::Buffer(rawBuffer);
 
     // Get device address for bindless access
-    vk::BufferDeviceAddressInfo addressInfo{
-        .buffer = buffer.handle
-    };
-
-    buffer.deviceAddress = m_context.getDevice().getBufferAddress(addressInfo);
+    if (usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
+        vk::BufferDeviceAddressInfo addressInfo;
+        addressInfo.setBuffer(buffer.handle);
+        buffer.deviceAddress = m_context.getDevice().getBufferAddress(addressInfo);
+    }
 
     // Map memory if allocated in host-visible memory
     VmaAllocationInfo vmaAllocInfo;
@@ -102,11 +108,12 @@ MemoryAllocator::Buffer MemoryAllocator::createBuffer(vk::DeviceSize size,
 }
 
 void MemoryAllocator::destroyBuffer(Buffer& buffer) {
-    if (buffer.handle && buffer.allocation) {
+    if (buffer.handle) {
         vmaDestroyBuffer(m_allocator, static_cast<VkBuffer>(buffer.handle), buffer.allocation);
         buffer.handle = nullptr;
         buffer.allocation = nullptr;
-        buffer.deviceAddress = {};
+        buffer.size = 0;
+        buffer.deviceAddress = 0;
         buffer.mappedData = nullptr;
     }
 }
@@ -121,55 +128,78 @@ void MemoryAllocator::uploadToGPU(const Buffer& dst, const void* srcData,
     LOG_DEBUG("Uploading {} bytes to GPU at offset {}", size, offset);
 
     // Create staging buffer
-    Buffer staging = createBuffer(
-        size,
+    Buffer stagingBuffer = createBuffer(size, 
         vk::BufferUsageFlagBits::eTransferSrc,
         VMA_MEMORY_USAGE_CPU_ONLY);
 
-    // Copy data to staging
-    if (staging.mappedData) {
-        memcpy(staging.mappedData, srcData, size);
-
-        // Flush if needed
-        vmaFlushAllocation(m_allocator, staging.allocation, 0, size);
-    } else {
-        LOG_ERROR("Staging buffer not host-visible");
-        destroyBuffer(staging);
-        throw std::runtime_error("Staging buffer not host-accessible");
-    }
+    // Map memory
+    void* mappedData;
+    vmaMapMemory(m_allocator, stagingBuffer.allocation, &mappedData);
+    memcpy(mappedData, srcData, size);
+    vmaUnmapMemory(m_allocator, stagingBuffer.allocation);
 
     // Submit transfer command
     try {
-        vk::CommandPool cmdPool = m_transferCommandPool;
+        vk::CommandPool cmdPool = m_context.createCommandPool(
+            m_context.getQueues().transferFamily,
+            vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
         vk::CommandBuffer cmd = m_context.beginSingleTimeCommands(cmdPool);
 
-        vk::BufferCopy copyRegion{
-            .srcOffset = 0,
-            .dstOffset = offset,
-            .size = size
-        };
+        vk::BufferCopy copyRegion;
+        copyRegion.setSrcOffset(0);
+        copyRegion.setDstOffset(offset);
+        copyRegion.setSize(size);
 
-        cmd.copyBuffer(staging.handle, dst.handle, copyRegion);
+        cmd.copyBuffer(stagingBuffer.handle, dst.handle, 1, &copyRegion);
 
         m_context.endSingleTimeCommands(cmd, cmdPool, m_context.getQueues().transfer);
+
+        m_context.getDevice().destroyCommandPool(cmdPool);
 
         LOG_DEBUG("GPU upload complete");
 
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to upload data to GPU: {}", e.what());
-        destroyBuffer(staging);
+        destroyBuffer(stagingBuffer);
         throw;
     }
 
-    destroyBuffer(staging);
+    destroyBuffer(stagingBuffer);
 }
 
 vk::DeviceAddress MemoryAllocator::getBufferAddress(const Buffer& buffer) {
-    vk::BufferDeviceAddressInfo addressInfo{
-        .buffer = buffer.handle
-    };
+    vk::BufferDeviceAddressInfo addressInfo;
+    addressInfo.setBuffer(buffer.handle);
 
     return m_context.getDevice().getBufferAddress(addressInfo);
+}
+
+void* MemoryAllocator::mapBuffer(const Buffer& buffer) {
+    if (!buffer.allocation) {
+        LOG_ERROR("Attempting to map buffer with null allocation");
+        return nullptr;
+    }
+
+    void* mappedData = nullptr;
+    VkResult result = vmaMapMemory(m_allocator, buffer.allocation, &mappedData);
+
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to map buffer memory");
+        return nullptr;
+    }
+
+    LOG_DEBUG("Mapped buffer of size {} bytes", buffer.size);
+    return mappedData;
+}
+
+void MemoryAllocator::unmapBuffer(const Buffer& buffer) {
+    if (!buffer.allocation) {
+        LOG_ERROR("Attempting to unmap buffer with null allocation");
+        return;
+    }
+
+    vmaUnmapMemory(m_allocator, buffer.allocation);
+    LOG_DEBUG("Unmapped buffer of size {} bytes", buffer.size);
 }
 
 } // namespace core

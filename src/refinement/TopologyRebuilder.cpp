@@ -95,32 +95,65 @@ std::vector<nanovdb::Coord> TopologyRebuilder::processRefinementActions(
     const std::vector<nanovdb::Coord>& oldLUT,
     const std::vector<uint8_t>& mask)
 {
-    LOG_DEBUG("Processing refinement actions");
+    LOG_DEBUG("Processing refinement actions with sibling detection");
 
     std::vector<nanovdb::Coord> newCoords;
+    newCoords.reserve(oldLUT.size() * 2);  // Estimate
 
-    for (size_t i = 0; i < oldLUT.size(); ++i) {
+    // Track which voxels have been processed (for coarsening)
+    std::unordered_set<size_t> processed;
+
+    // First pass: detect sibling groups for coarsening
+    std::unordered_map<nanovdb::Coord, std::vector<size_t>> siblingGroups;
+    
+    for (size_t i = 0; i < oldLUT.size(); i++) {
+        if (mask[i] == 2) {  // Coarsen
+            nanovdb::Coord parent(
+                oldLUT[i][0] / 2,
+                oldLUT[i][1] / 2,
+                oldLUT[i][2] / 2
+            );
+            siblingGroups[parent].push_back(i);
+        }
+    }
+
+    // Process coarsening groups
+    for (const auto& [parent, siblings] : siblingGroups) {
+        if (siblings.size() == 8) {
+            // All 8 siblings present and want to coarsen
+            LOG_DEBUG("Coarsening 8 siblings to parent at ({}, {}, {})",
+                     parent[0], parent[1], parent[2]);
+            newCoords.push_back(parent);
+            
+            // Mark as processed
+            for (size_t idx : siblings) {
+                processed.insert(idx);
+            }
+        } else {
+            // Not all siblings present, keep individual voxels
+            LOG_DEBUG("Incomplete sibling group ({}/8), keeping voxels", siblings.size());
+            for (size_t idx : siblings) {
+                newCoords.push_back(oldLUT[idx]);
+                processed.insert(idx);
+            }
+        }
+    }
+
+    // Second pass: process refinement and keep actions
+    for (size_t i = 0; i < oldLUT.size(); i++) {
+        if (processed.count(i) > 0) {
+            continue;  // Already handled in coarsening
+        }
+
         uint8_t action = mask[i];
-        const auto& coord = oldLUT[i];
 
-        if (action == 0) {
-            // Keep: no topology change
-            newCoords.push_back(coord);
-        } else if (action == 1) {
-            // Refine: split voxel into 8 sub-voxels (conceptually)
-            // For simplicity, we keep the parent and add offset children
-            // In full implementation, this would create proper child hierarchy
-            newCoords.push_back(coord);
-
-            // Add 8 children at finer coordinates
-            for (int dx = 0; dx < 2; ++dx) {
-                for (int dy = 0; dy < 2; ++dy) {
-                    for (int dz = 0; dz < 2; ++dz) {
-                        nanovdb::Coord childCoord(
-                            coord.x() * 2 + dx,
-                            coord.y() * 2 + dy,
-                            coord.z() * 2 + dz);
-                        newCoords.push_back(childCoord);
+        if (action == 1) {
+            // Refine: create 8 children at 2x resolution
+            nanovdb::Coord baseCoord = oldLUT[i] * 2;
+            for (int dz = 0; dz < 2; dz++) {
+                for (int dy = 0; dy < 2; dy++) {
+                    for (int dx = 0; dx < 2; dx++) {
+                        newCoords.push_back(baseCoord + nanovdb::Coord(dx, dy, dz));
                     }
                 }
             }

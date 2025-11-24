@@ -29,16 +29,16 @@ GridLoader::load(const std::filesystem::path& path, const std::string& gridName)
             handle = nanovdb::io::readGrid(path.string(), gridName);
         }
 
-        auto* grid = handle.grid();
+        auto* grid = handle.gridData(0);
         LOG_CHECK(grid != nullptr, "Failed to load grid from file");
 
         validateGridType(grid);
 
-        auto bbox = grid->gridMetaData()->indexBBox();
+        auto bbox = grid->indexBBox();
         LOG_INFO("Grid loaded successfully. Bounds: [{},{},{}] to [{},{},{}], Type: {}",
                  bbox.min()[0], bbox.min()[1], bbox.min()[2],
                  bbox.max()[0], bbox.max()[1], bbox.max()[2],
-                 grid->gridType() == nanovdb::GridType::Float ? "Float" : "Other");
+                 grid->mGridType == nanovdb::GridType::Float ? "Float" : "Other");
 
         return handle;
 
@@ -48,10 +48,10 @@ GridLoader::load(const std::filesystem::path& path, const std::string& gridName)
     }
 }
 
-void GridLoader::validateGridType(const nanovdb::GridBase* grid) {
+void GridLoader::validateGridType(const nanovdb::GridData* grid) {
     LOG_CHECK(grid != nullptr, "Grid is null");
 
-    nanovdb::GridType type = grid->gridType();
+    nanovdb::GridType type = grid->mGridType;
 
     // Supported types: Float (density/temperature), Vec3f (velocity)
     if (type != nanovdb::GridType::Float &&

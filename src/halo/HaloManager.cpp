@@ -128,14 +128,13 @@ void HaloManager::createHaloSemaphores() {
     // Create one semaphore per (src, dst) GPU pair
     m_haloSemaphores.resize(gpuCount * gpuCount);
 
-    vk::SemaphoreTypeCreateInfo timelineCreateInfo{
-        .semaphoreType = vk::SemaphoreType::eTimeline,
-        .initialValue = 0
-    };
+    vk::SemaphoreTypeCreateInfo timelineCreateInfo(
+        vk::SemaphoreType::eTimeline,
+        0 // initialValue
+    );
 
-    vk::SemaphoreCreateInfo createInfo{
-        .pNext = &timelineCreateInfo
-    };
+    vk::SemaphoreCreateInfo createInfo;
+    createInfo.setPNext(&timelineCreateInfo);
 
     for (uint32_t src = 0; src < gpuCount; src++) {
         for (uint32_t dst = 0; dst < gpuCount; dst++) {

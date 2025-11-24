@@ -1,7 +1,9 @@
 #include "vis/VolumeRenderer.hpp"
 #include "core/Logger.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <fstream>
+#include <cstdlib>
+#include <cstdio>
 #include <glm/gtc/type_ptr.hpp>
 #include <stdexcept>
 
@@ -129,7 +131,6 @@ void VolumeRenderer::createPipeline()
     layoutInfo.setLayoutCount = 1;
     layoutInfo.pSetLayouts = &m_descriptorSetLayout;
 
-    // Push constants for render config
     vk::PushConstantRange pushRange{};
     pushRange.stageFlags = vk::ShaderStageFlagBits::eFragment;
     pushRange.offset = 0;
@@ -140,23 +141,229 @@ void VolumeRenderer::createPipeline()
 
     auto layoutResult = m_context.getDevice().createPipelineLayout(layoutInfo);
     if (layoutResult.result != vk::Result::eSuccess) {
-        LOG_ERROR("Failed to create pipeline layout");
         throw std::runtime_error("Pipeline layout creation failed");
     }
 
     m_pipelineLayout = layoutResult.value;
 
-    // For now, create placeholder pipeline
-    // Full shader compilation will be done with DXC integration
-    // Pipeline state would include:
-    // - Vertex shader (quad.vert): generates full-screen triangle
-    // - Fragment shader (volume.frag): raymarching volumetric data
-    // - Blending: SrcAlpha, OneMinusSrcAlpha
-    // - Depth: disabled (raymarched)
-    // - Culling: none
+    // --- Compile Vertex Shader ---
+    std::string vertSource = R"(
+#version 460
+layout(location = 0) out vec2 outUV;
+void main() {
+    vec2 uv = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+    gl_Position = vec4(uv * 2.0f - 1.0f, 0.0f, 1.0f);
+    outUV = uv;
+}
+)";
+    std::string uuid = "quad_" + std::to_string(std::rand());
+    std::string glslFile = "/tmp/" + uuid + ".vert";
+    std::string spvFile = "/tmp/" + uuid + ".spv";
+    {
+        std::ofstream out(glslFile);
+        out << vertSource;
+    }
+    std::system(("/opt/homebrew/bin/glslc -fshader-stage=vertex -o " + spvFile + " " + glslFile).c_str());
+    std::remove(glslFile.c_str());
 
-    m_pipeline = vk::Pipeline();
-    LOG_DEBUG("Graphics pipeline created (placeholder)");
+    std::vector<uint32_t> vertSpirv;
+    {
+        std::ifstream in(spvFile, std::ios::binary | std::ios::ate);
+        if (in) {
+            size_t size = in.tellg();
+            vertSpirv.resize(size/4);
+            in.seekg(0);
+            in.read((char*)vertSpirv.data(), size);
+        }
+    }
+    std::remove(spvFile.c_str());
+
+    vk::ShaderModuleCreateInfo vertModuleInfo{
+        .codeSize = vertSpirv.size() * 4,
+        .pCode = vertSpirv.data()
+    };
+    vk::ShaderModule vertModule = m_context.getDevice().createShaderModule(vertModuleInfo);
+
+
+    // --- Compile Fragment Shader ---
+    std::string fragSource = R"(
+#version 460
+layout(location = 0) in vec2 inUV;
+layout(location = 0) out vec4 outColor;
+
+layout(push_constant) uniform PC {
+    float density;
+    float threshold;
+    uint width;
+    uint height;
+} pc;
+
+layout(std140, binding = 0) uniform Camera {
+    mat4 view;
+    mat4 proj;
+} camera;
+
+// Assuming field data is bound here
+layout(std430, binding = 2) buffer FieldData {
+    float data[];
+};
+
+// Simple ray-box intersection
+vec2 intersectBox(vec3 orig, vec3 dir) {
+    vec3 boxMin = vec3(0.0);
+    vec3 boxMax = vec3(1.0); // Normalized volume coordinates
+    vec3 invDir = 1.0 / dir;
+    vec3 tmin = (boxMin - orig) * invDir;
+    vec3 tmax = (boxMax - orig) * invDir;
+    vec3 t1 = min(tmin, tmax);
+    vec3 t2 = max(tmin, tmax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    return vec2(tNear, tFar);
+}
+
+void main() {
+    // Ray generation
+    vec4 ndc = vec4(inUV * 2.0 - 1.0, -1.0, 1.0);
+    vec4 viewSpace = inverse(camera.proj) * ndc;
+    viewSpace /= viewSpace.w;
+    vec4 worldSpace = inverse(camera.view) * viewSpace;
+    vec3 rayOrigin = (inverse(camera.view) * vec4(0,0,0,1)).xyz;
+    vec3 rayDir = normalize(worldSpace.xyz - rayOrigin);
+
+    // Intersect volume
+    vec2 t = intersectBox(rayOrigin, rayDir);
+    if (t.x > t.y) {
+        outColor = vec4(0.0); // Miss
+        return;
+    }
+
+    t.x = max(t.x, 0.0);
+    vec3 pos = rayOrigin + rayDir * t.x;
+    float stepSize = 0.01;
+    vec4 color = vec4(0.0);
+
+    // Raymarch
+    for (float dist = t.x; dist < t.y; dist += stepSize) {
+        if (color.a >= 0.99) break;
+
+        // Sample field (placeholder mapping from pos to index)
+        // In real impl, use NanoVDB accessor or 3D texture
+        // Here we just map 0..1 to linear index for demo
+        uint idx = uint(pos.x * 100 + pos.y * 100 * 100 + pos.z * 100 * 100 * 100) % 1000000; 
+        // Safety check
+        if (idx < 1000000) { 
+             float val = data[idx];
+             
+             if (val > pc.threshold) {
+                 float alpha = pc.density * stepSize;
+                 vec3 srcColor = vec3(val); // Simple transfer function
+                 color.rgb += (1.0 - color.a) * alpha * srcColor;
+                 color.a += (1.0 - color.a) * alpha;
+             }
+        }
+
+        pos += rayDir * stepSize;
+    }
+
+    outColor = color;
+}
+)";
+    uuid = "volume_" + std::to_string(std::rand());
+    glslFile = "/tmp/" + uuid + ".frag";
+    spvFile = "/tmp/" + uuid + ".spv";
+    {
+        std::ofstream out(glslFile);
+        out << fragSource;
+    }
+    std::system(("/opt/homebrew/bin/glslc -fshader-stage=fragment -o " + spvFile + " " + glslFile).c_str());
+    std::remove(glslFile.c_str());
+
+    std::vector<uint32_t> fragSpirv;
+    {
+        std::ifstream in(spvFile, std::ios::binary | std::ios::ate);
+        if (in) {
+            size_t size = in.tellg();
+            fragSpirv.resize(size/4);
+            in.seekg(0);
+            in.read((char*)fragSpirv.data(), size);
+        }
+    }
+    std::remove(spvFile.c_str());
+
+    vk::ShaderModuleCreateInfo fragModuleInfo{
+        .codeSize = fragSpirv.size() * 4,
+        .pCode = fragSpirv.data()
+    };
+    vk::ShaderModule fragModule = m_context.getDevice().createShaderModule(fragModuleInfo);
+
+    // Pipeline creation
+    vk::PipelineShaderStageCreateInfo shaderStages[] = {
+        {
+            .stage = vk::ShaderStageFlagBits::eVertex,
+            .module = vertModule,
+            .pName = "main"
+        },
+        {
+            .stage = vk::ShaderStageFlagBits::eFragment,
+            .module = fragModule,
+            .pName = "main"
+        }
+    };
+
+    vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+
+    vk::Viewport viewport{};
+    viewport.width = (float)m_width;
+    viewport.height = (float)m_height;
+    viewport.maxDepth = 1.0f;
+    vk::Rect2D scissor{};
+    scissor.extent = vk::Extent2D(m_width, m_height);
+    vk::PipelineViewportStateCreateInfo viewportState{};
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+
+    vk::PipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+
+    vk::PipelineMultisampleStateCreateInfo multisampling{};
+    
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    vk::PipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments = &colorBlendAttachment;
+
+    vk::GraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.stageCount = 2;
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.layout = m_pipelineLayout;
+    pipelineInfo.renderPass = m_renderPass;
+    pipelineInfo.subpass = 0;
+
+    auto result = m_context.getDevice().createGraphicsPipeline(nullptr, pipelineInfo);
+    if (result.result != vk::Result::eSuccess) {
+        throw std::runtime_error("Failed to create graphics pipeline");
+    }
+    m_pipeline = result.value;
+
+    m_context.getDevice().destroyShaderModule(vertModule);
+    m_context.getDevice().destroyShaderModule(fragModule);
+
+    LOG_DEBUG("Graphics pipeline created");
 }
 
 void VolumeRenderer::destroyPipeline()

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FluidLoom Documentation</title>
+    <!-- Syntax Highlighting -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --bg-color: #ffffff;
+            --text-color: #1f2937;
+            --sidebar-bg: #f3f4f6;
+            --sidebar-width: 280px;
+            --header-height: 60px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --sidebar-bg: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            height: 100vh;
+            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-group {
+            padding: 10px 0;
+        }
+
+        .nav-header {
+            padding: 5px 20px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-link.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--primary-color);
+            border-right: 3px solid var(--primary-color);
+        }
+
+        /* Main Content */
+        #main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        #header {
+            height: var(--header-height);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        #breadcrumbs {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        #content {
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        /* Markdown Styles */
+        #content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        #content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        #content h3 {
+            font-size: 1.4rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        #content p {
+            margin-bottom: 1rem;
+        }
+
+        #content code {
+            background-color: rgba(0, 0, 0, 0.05);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        #content pre {
+            background-color: #282c34;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        #content pre code {
+            background-color: transparent;
+            padding: 0;
+            color: #abb2bf;
+        }
+
+        #content blockquote {
+            border-left: 4px solid var(--primary-color);
+            margin: 0;
+            padding-left: 1rem;
+            color: #6b7280;
+        }
+
+        #content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        #content th,
+        #content td {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        #content th {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        #content img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Callouts */
+        .callout {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .callout-note {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+
+        .callout-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-color: #f59e0b;
+        }
+
+        .callout-tip {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+        }
+
+        /* Search */
+        #search-box {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            width: 200px;
+            font-size: 0.9rem;
+        }
+
+        /* Theme Toggle */
+        #theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+                z-index: 100;
+            }
+
+            #sidebar.open {
+                transform: translateX(0);
+            }
+
+            #main {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            #mobile-menu {
+                display: block;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <span>FluidLoom Docs</span>
+            <button id="theme-toggle">🌙</button>
+        </div>
+        <div id="nav-content">
+            <!-- Navigation items will be injected here -->
+        </div>
+    </nav>
+
+    <main id="main">
+        <header id="header">
+            <div id="breadcrumbs">Home</div>
+            <input type="text" id="search-box" placeholder="Search docs...">
+        </header>
+        <div id="content">
+            <!-- Markdown content will be rendered here -->
+            <div style="text-align: center; margin-top: 50px;">
+                <h1>Welcome to FluidLoom Documentation</h1>
+                <p>Select a topic from the sidebar to get started.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <script>
+        // Configuration
+        const repoUrl = "https://github.com/karthikt/fluidloom/edit/main/docs/";
+
+        // Navigation Structure
+        const navigation = [
+            {
+                title: "Developer Guide",
+                items: [
+                    { title: "Overview", path: "Developer_Guide/index.md" },
+                    { title: "Setup & Installation", path: "Developer_Guide/Setup_and_Installation.md" },
+                    { title: "Development Workflow", path: "Developer_Guide/Development_Workflow.md" },
+                    { title: "Code Standards", path: "Developer_Guide/Code_Standards.md" },
+                    { title: "Testing Guide", path: "Developer_Guide/Testing_Guide.md" },
+                    { title: "Build & Deployment", path: "Developer_Guide/Building_and_Deployment.md" },
+                    { title: "Troubleshooting", path: "Developer_Guide/Troubleshooting.md" }
+                ]
+            },
+            {
+                title: "Programming Guide",
+                items: [
+                    { title: "Core Concepts", path: "Programming_Guide/index.md" },
+                    { title: "Key Components", path: "Programming_Guide/Key_Components.md" },
+                    { title: "Design Patterns", path: "Programming_Guide/Design_Patterns.md" },
+                    { title: "Data Flow", path: "Programming_Guide/Data_Flow.md" },
+                    { title: "State Management", path: "Programming_Guide/State_Management.md" },
+                    { title: "Best Practices", path: "Programming_Guide/Best_Practices.md" }
+                ]
+            },
+            {
+                title: "Architecture",
+                items: [
+                    { title: "System Overview", path: "Architecture/index.md" },
+                    { title: "System Architecture", path: "Architecture/System_Architecture.md" },
+                    { title: "Component Diagrams", path: "Architecture/Component_Diagrams.md" },
+                    { title: "Database Schema", path: "Architecture/Database_Schema.md" },
+                    { title: "Infrastructure", path: "Architecture/Infrastructure.md" },
+                    { title: "Tech Stack", path: "Architecture/Tech_Stack.md" }
+                ]
+            },
+            {
+                title: "API Reference",
+                items: [
+                    { title: "Overview", path: "API_Reference/index.md" },
+                    { title: "Modules", path: "API_Reference/Modules/module1.md" } // Placeholder
+                ]
+            },
+            {
+                title: "Tutorials",
+                items: [
+                    { title: "Index", path: "Tutorials/index.md" },
+                    { title: "1. Getting Started", path: "Tutorials/Tutorial_1_Getting_Started.md" },
+                    { title: "2. Building a Feature", path: "Tutorials/Tutorial_2_Building_a_Feature.md" },
+                    { title: "3. Advanced Usage", path: "Tutorials/Tutorial_3_Advanced_Usage.md" },
+                    { title: "4. Integration", path: "Tutorials/Tutorial_4_Integration_Example.md" }
+                ]
+            }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderNavigation();
+            handleRouting();
+            setupTheme();
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        });
+
+        // Render Navigation Sidebar
+        function renderNavigation() {
+            const navContent = document.getElementById('nav-content');
+            let html = '';
+
+            navigation.forEach(group => {
+                html += `<div class="nav-group">
+                            <div class="nav-header">${group.title}</div>`;
+                group.items.forEach(item => {
+                    html += `<a class="nav-link" href="#${item.path}" onclick="loadPage('${item.path}')">${item.title}</a>`;
+                });
+                html += `</div>`;
+            });
+
+            navContent.innerHTML = html;
+        }
+
+        // Handle Routing
+        function handleRouting() {
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                loadPage(hash);
+            } else {
+                // Load default page or welcome message
+                // loadPage('Developer_Guide/index.md');
+            }
+        }
+
+        window.addEventListener('hashchange', handleRouting);
+
+        // Load and Render Markdown Page
+        async function loadPage(path) {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const text = await response.text();
+
+                // Update Breadcrumbs
+                document.getElementById('breadcrumbs').innerText = path.replace('.md', '').replace(/\//g, ' > ').replace(/_/g, ' ');
+
+                // Update Active Link
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                const activeLink = document.querySelector(`a[href="#${path}"]`);
+                if (activeLink) activeLink.classList.add('active');
+
+                // Render Markdown
+                const contentDiv = document.getElementById('content');
+                contentDiv.innerHTML = marked.parse(text);
+
+                // Syntax Highlighting
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // Render Mermaid Diagrams
+                const mermaidBlocks = document.querySelectorAll('.language-mermaid');
+                mermaidBlocks.forEach(async (block, index) => {
+                    const graphDefinition = block.innerText;
+                    const { svg } = await mermaid.render(`mermaid-${index}`, graphDefinition);
+                    block.parentElement.innerHTML = svg;
+                });
+
+                // Scroll to top
+                contentDiv.scrollTop = 0;
+
+            } catch (error) {
+                document.getElementById('content').innerHTML = `
+                    <h1>Error Loading Page</h1>
+                    <p>Could not load <code>${path}</code>.</p>
+                    <p>Make sure you are serving this directory via a local server (e.g., <code>python -m http.server</code>) to avoid CORS issues.</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+
+        // Theme Toggle
+        function setupTheme() {
+            const toggle = document.getElementById('theme-toggle');
+            const storedTheme = localStorage.getItem('theme');
+
+            if (storedTheme) {
+                document.documentElement.setAttribute('data-theme', storedTheme);
+                toggle.innerText = storedTheme === 'dark' ? '☀️' : '🌙';
+            }
+
+            toggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                toggle.innerText = newTheme === 'dark' ? '☀️' : '🌙';
+            });
+        }
+    </script>
+</body>
+
+</html>

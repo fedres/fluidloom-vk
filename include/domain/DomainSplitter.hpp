@@ -1,6 +1,8 @@
 #pragma once
 
 #include <nanovdb/NanoVDB.h>
+#include <nanovdb/GridHandle.h>
+#include <nanovdb/HostBuffer.h>
 #include <vector>
 #include <cstdint>
 
@@ -57,7 +59,8 @@ public:
         double imbalanceFactor = 0.0;  // max / avg
     };
 
-    explicit DomainSplitter(const SplitConfig& config = {});
+    explicit DomainSplitter();
+    explicit DomainSplitter(const SplitConfig& config);
 
     /**
      * Compute Morton code (Z-order curve) for a coordinate

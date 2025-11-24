@@ -4,6 +4,9 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <fstream>
+#include <cstdlib>
+#include <cstdio>
 
 namespace field {
 
@@ -196,15 +199,154 @@ std::string FieldRegistry::generateGLSLHeader() const {
 }
 
 void FieldRegistry::createFillPipeline() {
-    // Stub: Fill pipeline creation would go here
-    // This requires shader compilation which is deferred to Module 6
-    LOG_DEBUG("createFillPipeline stub (to be implemented in Module 6)");
+    LOG_DEBUG("Creating fill pipeline");
+
+    // Generate GLSL for fill shader
+    std::string glslSource = R"(
+#version 460
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference_uvec2 : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants {
+    uint64_t bufferAddr;
+    uint32_t elementCount;
+    float value;
+} pc;
+
+layout(buffer_reference, scalar) buffer DataBuffer {
+    float data[];
+};
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= pc.elementCount) return;
+
+    DataBuffer(pc.bufferAddr).data[idx] = pc.value;
+}
+)";
+
+    // Compile to SPIR-V using StencilRegistry's helper (we need to expose it or duplicate it)
+    // Since StencilRegistry depends on FieldRegistry, we can't easily use it here without circular dep.
+    // For now, we'll duplicate the compile logic or use a static helper.
+    // Actually, let's use a temporary StencilRegistry just for compilation if possible,
+    // or better, move the compile logic to a common utility.
+    // Given the constraints, I will duplicate the compile logic here for simplicity as per plan.
+    
+    // ... Duplicated compile logic from StencilRegistry ...
+    // Wait, I can't easily duplicate it without including headers.
+    // Let's assume I can use a helper or just implement it here.
+    
+    // Create temporary files
+    std::string uuid = "fill_shader_" + std::to_string(std::rand());
+    std::string glslFile = "/tmp/" + uuid + ".comp";
+    std::string spvFile = "/tmp/" + uuid + ".spv";
+
+    {
+        std::ofstream out(glslFile);
+        out << glslSource;
+    }
+
+    std::string command = "/opt/homebrew/bin/glslc -fshader-stage=compute -o " + spvFile + " " + glslFile;
+    int ret = std::system(command.c_str());
+    std::remove(glslFile.c_str());
+
+    if (ret != 0) {
+        throw std::runtime_error("Fill shader compilation failed");
+    }
+
+    std::vector<uint32_t> spirv;
+    {
+        std::ifstream in(spvFile, std::ios::binary | std::ios::ate);
+        size_t fileSize = in.tellg();
+        spirv.resize(fileSize / 4);
+        in.seekg(0);
+        in.read(reinterpret_cast<char*>(spirv.data()), fileSize);
+    }
+    std::remove(spvFile.c_str());
+
+    // Create shader module
+    vk::ShaderModuleCreateInfo moduleInfo(
+        {}, // flags
+        spirv.size() * sizeof(uint32_t),
+        spirv.data()
+    );
+    vk::ShaderModule shaderModule = m_context.getDevice().createShaderModule(moduleInfo);
+
+    // Create pipeline layout
+    vk::PushConstantRange pushRange(
+        vk::ShaderStageFlagBits::eCompute,
+        0, // offset
+        sizeof(uint64_t) + sizeof(uint32_t) + sizeof(float) // size
+    );
+
+    vk::PipelineLayoutCreateInfo layoutInfo(
+        {}, // flags
+        0, nullptr, // setLayoutCount, pSetLayouts
+        1, &pushRange // pushConstantRangeCount, pPushConstantRanges
+    );
+    m_fillLayout = m_context.getDevice().createPipelineLayout(layoutInfo);
+
+    // Create pipeline
+    vk::PipelineShaderStageCreateInfo stageInfo(
+        {}, // flags
+        vk::ShaderStageFlagBits::eCompute,
+        shaderModule,
+        "main",
+        nullptr // pSpecializationInfo
+    );
+
+    vk::ComputePipelineCreateInfo pipelineInfo(
+        {}, // flags
+        stageInfo,
+        m_fillLayout,
+        nullptr, // basePipelineHandle
+        -1 // basePipelineIndex
+    );
+
+    auto result = m_context.getDevice().createComputePipeline(nullptr, pipelineInfo);
+    m_fillPipeline = result.value;
+
+    m_context.getDevice().destroyShaderModule(shaderModule);
+    LOG_DEBUG("Fill pipeline created");
 }
 
 void FieldRegistry::initializeField(const std::string& fieldName, const void* value) {
-    // Stub: Initialize with compute shader
-    // This requires the fill pipeline which is created lazily in Module 6
-    LOG_DEBUG("Initializing field '{}' (stub - to be implemented in Module 6)", fieldName);
+    if (!m_fillPipeline) {
+        createFillPipeline();
+    }
+
+    LOG_DEBUG("Initializing field '{}'", fieldName);
+
+    const auto& desc = getField(fieldName);
+    float floatVal = 0.0f;
+    if (value) {
+        floatVal = *static_cast<const float*>(value);
+    }
+
+    vk::CommandBuffer cmd = m_context.beginSingleTimeCommands(m_computeCommandPool);
+
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_fillPipeline);
+
+    struct PushConstants {
+        uint64_t bufferAddr;
+        uint32_t elementCount;
+        float value;
+    } pc;
+
+    pc.bufferAddr = static_cast<uint64_t>(desc.deviceAddress);
+    pc.elementCount = m_activeVoxelCount;
+    pc.value = floatVal;
+
+    cmd.pushConstants<PushConstants>(m_fillLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
+
+    uint32_t groupCount = (m_activeVoxelCount + 127) / 128;
+    cmd.dispatch(groupCount, 1, 1);
+
+    m_context.endSingleTimeCommands(cmd, m_computeCommandPool, m_context.getQueues().compute);
 }
 
 } // namespace field

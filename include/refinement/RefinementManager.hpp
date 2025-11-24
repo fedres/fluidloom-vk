@@ -113,6 +113,10 @@ private:
     // Host-side mask staging buffer
     core::MemoryAllocator::Buffer m_maskStagingBuffer;
 
+    // Level tracking (uint8_t per active voxel)
+    core::MemoryAllocator::Buffer m_levelBuffer;
+    std::vector<uint8_t> m_hostLevels;
+
     /**
      * @brief Create compute pipelines for mark and remap operations
      */
@@ -127,6 +131,17 @@ private:
      * @brief Allocate mask buffer for given voxel count
      */
     void allocateMaskBuffer(uint32_t voxelCount);
+
+    /**
+     * @brief Allocate and initialize level buffer
+     */
+    void allocateLevelBuffer(uint32_t voxelCount);
+
+    /**
+     * @brief Update levels after topology rebuild
+     */
+    void updateLevels(const std::vector<nanovdb::Coord>& newLUT,
+                      const std::vector<nanovdb::Coord>& oldLUT);
 };
 
 } // namespace refinement

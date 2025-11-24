@@ -49,10 +49,27 @@ public:
     std::vector<std::string> buildSchedule();
 
     /**
+     * Get execution order (alias for buildSchedule)
+     * @return Ordered list of stencil names for execution
+     */
+    std::vector<std::string> getExecutionOrder() { return buildSchedule(); }
+
+    /**
      * Export graph as DOT format for visualization (GraphViz)
      * @return DOT format string
      */
     std::string exportDOT() const;
+
+    /**
+     * Export to DOT format (alias for exportDOT)
+     * @return DOT format string
+     */
+    std::string toDot() const { return exportDOT(); }
+
+    /**
+     * Get total number of nodes in the graph
+     */
+    size_t getNodeCount() const { return m_nodes.size(); }
 
     /**
      * Get all nodes in the graph
@@ -74,6 +91,11 @@ public:
      */
     uint32_t getOutDegree(const std::string& name) const;
 
+    /**
+     * Check if the graph has cycles (public accessor for testing)
+     */
+    bool hasCycle() const;
+
 private:
     std::map<std::string, Node> m_nodes;
     std::map<std::string, std::vector<std::string>> m_adjacencyList; // name -> dependents
@@ -82,12 +104,6 @@ private:
      * Compute dependencies based on read/write conflicts
      */
     void computeDependencies();
-
-    /**
-     * Detect cycles in the graph (called by buildSchedule)
-     * @return true if cycle exists
-     */
-    bool hasCycle() const;
 };
 
 } // namespace graph

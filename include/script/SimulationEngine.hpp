@@ -5,6 +5,7 @@
 #include "field/FieldRegistry.hpp"
 #include "stencil/StencilRegistry.hpp"
 #include "graph/DependencyGraph.hpp"
+#include "graph/GraphExecutor.hpp"
 #include "domain/DomainSplitter.hpp"
 #include "halo/HaloManager.hpp"
 #include "nanovdb_adapter/GpuGridManager.hpp"
@@ -74,6 +75,30 @@ public:
     void runFrames(uint32_t frameCount, float dt = 0.016f);
 
     /**
+     * Build dependency graph from registered stencils
+     * Automatically detects RAW/WAR dependencies
+     */
+    void buildDependencyGraph();
+
+    /**
+     * Get current execution schedule (topologically sorted)
+     * @return Ordered list of stencil names
+     */
+    std::vector<std::string> getExecutionSchedule() const;
+
+    /**
+     * Export dependency graph to GraphViz DOT format
+     * @return DOT format string for visualization
+     */
+    std::string exportGraphDOT() const;
+
+    /**
+     * Override execution order (advanced usage)
+     * @param schedule Custom stencil order
+     */
+    void setExecutionOrder(const std::vector<std::string>& schedule);
+
+    /**
      * Get field registry (read-only access)
      */
     const field::FieldRegistry& getFieldRegistry() const { return *m_fieldRegistry; }
@@ -105,6 +130,7 @@ private:
     std::unique_ptr<field::FieldRegistry> m_fieldRegistry;
     std::unique_ptr<stencil::StencilRegistry> m_stencilRegistry;
     std::unique_ptr<graph::DependencyGraph> m_dependencyGraph;
+    std::unique_ptr<graph::GraphExecutor> m_graphExecutor;
     std::unique_ptr<domain::DomainSplitter> m_domainSplitter;
     std::unique_ptr<halo::HaloManager> m_haloManager;
     std::unique_ptr<nanovdb_adapter::GpuGridManager> m_gridManager;

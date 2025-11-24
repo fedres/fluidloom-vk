@@ -2,37 +2,44 @@
 #include "core/Logger.hpp"
 
 #include <stdexcept>
+#include <fstream>
+#include <cstdlib>
+#include <cstdio>
+#include <filesystem> // Added for std::filesystem::path
 
 namespace stencil {
 
 StencilRegistry::StencilRegistry(const core::VulkanContext& context,
-                                 const field::FieldRegistry& fieldRegistry)
+                                 const field::FieldRegistry& fieldRegistry,
+                                 const std::filesystem::path& cacheDir)
     : m_context(context),
       m_fieldRegistry(fieldRegistry),
-      m_shaderGenerator(fieldRegistry) {
-    LOG_INFO("Initializing StencilRegistry");
+      m_shaderGenerator(fieldRegistry),
+      m_pipelineCache(cacheDir.empty() ? 
+                      std::filesystem::path(std::getenv("HOME")) / ".fluidloom" / "shader_cache" :
+                      cacheDir) {
+    LOG_INFO("Initializing StencilRegistry with cache: {}", m_pipelineCache.getCacheDir().string());
 
     // Create pipeline layout
     m_pipelineLayout = createPipelineLayout();
 
-    // Create pipeline cache
-    vk::PipelineCacheCreateInfo cacheInfo{
-        .initialDataSize = 0,
-        .pInitialData = nullptr
-    };
-
+    // Create Vulkan pipeline cache for fast recompilation
+    vk::PipelineCacheCreateInfo cacheInfo(
+        {}, // flags
+        0, nullptr // initialDataSize, pInitialData
+    );
     try {
-        m_pipelineCache = m_context.getDevice().createPipelineCache(cacheInfo);
-        LOG_DEBUG("Pipeline cache created");
+        m_vkPipelineCache = m_context.getDevice().createPipelineCache(cacheInfo);
+        LOG_DEBUG("Vulkan pipeline cache created");
     } catch (const std::exception& e) {
-        LOG_ERROR("Failed to create pipeline cache: {}", e.what());
+        LOG_ERROR("Failed to create Vulkan pipeline cache: {}", e.what());
         throw;
     }
 }
 
 StencilRegistry::~StencilRegistry() {
-    if (m_pipelineCache) {
-        m_context.getDevice().destroyPipelineCache(m_pipelineCache);
+    if (m_vkPipelineCache) {
+        m_context.getDevice().destroyPipelineCache(m_vkPipelineCache);
     }
     if (m_pipelineLayout) {
         m_context.getDevice().destroyPipelineLayout(m_pipelineLayout);
@@ -44,18 +51,16 @@ vk::PipelineLayout StencilRegistry::createPipelineLayout() {
     LOG_DEBUG("Creating pipeline layout for stencils");
 
     // Push constant range: large enough for field addresses + metadata
-    vk::PushConstantRange pushConstantRange{
-        .stageFlags = vk::ShaderStageFlagBits::eCompute,
-        .offset = 0,
-        .size = 256  // Safe upper limit for push constants
-    };
-
-    vk::PipelineLayoutCreateInfo layoutInfo{
-        .setLayoutCount = 0,                    // No descriptor sets (bindless)
-        .pSetLayouts = nullptr,
-        .pushConstantRangeCount = 1,
-        .pPushConstantRanges = &pushConstantRange
-    };
+    vk::PushConstantRange pushConstantRange(
+        vk::ShaderStageFlagBits::eCompute,
+        0, // offset
+        256 // size
+    );
+    vk::PipelineLayoutCreateInfo layoutInfo(
+        {}, // flags
+        0, nullptr, // pSetLayouts
+        1, &pushConstantRange // pPushConstantRanges
+    );
 
     try {
         auto layout = m_context.getDevice().createPipelineLayout(layoutInfo);
@@ -96,39 +101,71 @@ void StencilRegistry::validateStencil(const StencilDefinition& definition) {
 
 std::vector<uint32_t> StencilRegistry::compileToSPIRV(const std::string& glslSource,
                                                        const std::string& entryPoint) {
-    LOG_INFO("Compiling GLSL to SPIR-V (stub - DXC integration pending)");
+    LOG_INFO("Compiling GLSL to SPIR-V using glslc");
 
-    // STUB: This would require DXC (DirectXShaderCompiler) integration
-    // For now, return empty SPIR-V that will fail pipeline creation
-    // Full implementation requires:
-    // 1. Initialize DXC compiler
-    // 2. Create DxcBuffer from shader source
-    // 3. Set compilation flags for SPIR-V generation
-    // 4. Call compiler->Compile()
-    // 5. Extract SPIR-V bytecode
+    // Create temporary files
+    std::string uuid = "shader_" + std::to_string(std::rand()); // Simple random ID
+    std::string glslFile = "/tmp/" + uuid + ".comp";
+    std::string spvFile = "/tmp/" + uuid + ".spv";
 
-    LOG_WARN("DXC integration not yet implemented - returning stub SPIR-V");
+    // Write GLSL to file
+    {
+        std::ofstream out(glslFile);
+        if (!out) {
+            throw std::runtime_error("Failed to create temporary GLSL file");
+        }
+        out << glslSource;
+    }
 
-    // Minimal valid SPIR-V header (will fail validation)
-    std::vector<uint32_t> spirvStub = {
-        0x07230203,  // SPIR-V magic number
-        0x00010300,  // Version 1.3
-        0x00070000,  // Generator (placeholder)
-        0x00000001,  // Bound
-        0x00000000   // Schema (unused)
-    };
+    // Build command: glslc -fshader-stage=compute -o output.spv input.glsl
+    std::string command = "/opt/homebrew/bin/glslc -fshader-stage=compute -o " + spvFile + " " + glslFile;
+    
+    // Execute command
+    int ret = std::system(command.c_str());
+    
+    // Cleanup GLSL file
+    std::remove(glslFile.c_str());
 
-    return spirvStub;
+    if (ret != 0) {
+        std::string error = "Shader compilation failed with code " + std::to_string(ret);
+        LOG_ERROR(error);
+        throw std::runtime_error(error);
+    }
+
+    // Read SPIR-V back
+    std::vector<uint32_t> spirv;
+    {
+        std::ifstream in(spvFile, std::ios::binary | std::ios::ate);
+        if (!in) {
+            throw std::runtime_error("Failed to open compiled SPIR-V file");
+        }
+
+        size_t fileSize = in.tellg();
+        if (fileSize % 4 != 0) {
+            throw std::runtime_error("Invalid SPIR-V file size (not multiple of 4)");
+        }
+
+        spirv.resize(fileSize / 4);
+        in.seekg(0);
+        in.read(reinterpret_cast<char*>(spirv.data()), fileSize);
+    }
+
+    // Cleanup SPIR-V file
+    std::remove(spvFile.c_str());
+
+    LOG_DEBUG("Shader compiled successfully ({} bytes)", spirv.size() * 4);
+    return spirv;
 }
 
 vk::Pipeline StencilRegistry::createComputePipeline(const std::vector<uint32_t>& spirvCode) {
     LOG_DEBUG("Creating compute pipeline from SPIR-V ({} words)", spirvCode.size());
 
     // Create shader module
-    vk::ShaderModuleCreateInfo moduleInfo{
-        .codeSize = spirvCode.size() * sizeof(uint32_t),
-        .pCode = spirvCode.data()
-    };
+    vk::ShaderModuleCreateInfo moduleInfo(
+        {}, // flags
+        spirvCode.size() * sizeof(uint32_t),
+        spirvCode.data()
+    );
 
     vk::ShaderModule shaderModule;
     try {
@@ -139,21 +176,22 @@ vk::Pipeline StencilRegistry::createComputePipeline(const std::vector<uint32_t>&
     }
 
     // Create pipeline
-    vk::PipelineShaderStageCreateInfo shaderStageInfo{
-        .stage = vk::ShaderStageFlagBits::eCompute,
-        .module = shaderModule,
-        .pName = "main"
-    };
-
-    vk::ComputePipelineCreateInfo pipelineInfo{
-        .stage = shaderStageInfo,
-        .layout = m_pipelineLayout
-    };
-
+    vk::PipelineShaderStageCreateInfo shaderStageInfo(
+        {}, // flags
+        vk::ShaderStageFlagBits::eCompute,
+        shaderModule,
+        "main",
+        nullptr
+    );
+    vk::ComputePipelineCreateInfo pipelineInfo(
+        {}, // flags
+        shaderStageInfo,
+        m_pipelineLayout
+    );
     vk::Pipeline pipeline;
     try {
         auto result = m_context.getDevice().createComputePipeline(
-            m_pipelineCache, pipelineInfo);
+            m_vkPipelineCache, pipelineInfo);
         pipeline = result.value;
         LOG_DEBUG("Compute pipeline created");
     } catch (const std::exception& e) {
@@ -182,8 +220,17 @@ const CompiledStencil& StencilRegistry::registerStencil(const StencilDefinition&
     // Generate GLSL
     std::string glslSource = m_shaderGenerator.generateComputeShader(definition);
 
-    // Compile to SPIR-V
-    std::vector<uint32_t> spirvCode = compileToSPIRV(glslSource);
+    // Check disk cache first
+    std::vector<uint32_t> spirvCode = m_pipelineCache.load(definition.name, glslSource);
+    
+    if (spirvCode.empty()) {
+        // Cache miss - compile to SPIR-V
+        LOG_DEBUG("Cache miss for '{}', compiling...", definition.name);
+        spirvCode = compileToSPIRV(glslSource);
+        
+        // Save to disk cache
+        m_pipelineCache.save(definition.name, glslSource, spirvCode);
+    }
 
     // Create pipeline
     vk::Pipeline pipeline = createComputePipeline(spirvCode);

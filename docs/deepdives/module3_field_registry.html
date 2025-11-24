@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 3: Field Registry & BDA - FluidLoom Deep Dive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.7;
+            color: #e4e4e7;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(6, 182, 212, 0.3);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #f4f4f5;
+            opacity: 0.95;
+        }
+
+        .meta {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(6, 182, 212, 0.2);
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #22d3ee;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(34, 211, 238, 0.3);
+            padding-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #67e8f9;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #86efac;
+        }
+
+        pre {
+            background: #1e1e2e;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #f8f8f2;
+        }
+
+        .diagram-box {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(34, 211, 238, 0.3);
+        }
+
+        .component-box {
+            background: rgba(6, 182, 212, 0.1);
+            border: 2px solid #06b6d4;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .component-box h4 {
+            color: #22d3ee;
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(34, 211, 238, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%);
+            border-left: 4px solid #22d3ee;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(6, 182, 212, 0.2);
+            color: #67e8f9;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ul {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #a1a1aa;
+            font-size: 0.9rem;
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔗 Module 3: Field Registry & BDA</h1>
+            <p class="subtitle">Bindless Descriptor System for Dynamic Field Management</p>
+            <div class="meta">
+                <div class="meta-item">📦 Version: 0.1.0</div>
+                <div class="meta-item">🎯 Status: <span class="status-badge">Production Ready</span></div>
+                <div class="meta-item">⚡ 256 Fields × O(1) Access</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>📋 Overview</h2>
+            <p>
+                Module 3 implements a Structure of Arrays (SoA) memory layout with bindless descriptor access via Buffer
+                Device Address (BDA).
+                Fields can be registered dynamically at runtime without shader recompilation, enabling flexible
+                simulation setup.
+            </p>
+            <div class="highlight-box">
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>Bindless Access</strong>: O(1) field lookup via device addresses</li>
+                    <li><strong>Dynamic Registration</strong>: Add fields at runtime without recompilation</li>
+                    <li><strong>SoA Layout</strong>: Each field is a separate contiguous array</li>
+                    <li><strong>Type Safety</strong>: vk::Format for compile-time type checking</li>
+                    <li><strong>GLSL Code Generation</strong>: Automatic accessor macro creation</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>🏗️ Architecture</h2>
+            <div class="diagram-box">
+                <h3>Bindless Descriptor System</h3>
+                <pre>
+┌─────────────────────────────────────────────────┐
+│             Application Code                    │
+│  registerField("density", eR32Sfloat)           │
+└──────────────┬──────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│          FieldRegistry                           │
+│  ┌────────────────────────────────────────────┐  │
+│  │ map<string, FieldDesc> m_fields            │  │
+│  │   "density"    → {buffer, address, idx}    │  │
+│  │   "velocity"   → {buffer, address, idx}    │  │
+│  │   "pressure"   → {buffer, address, idx}    │  │
+│  └────────────────────────────────────────────┘  │
+│                                                  │
+│  ┌────────────────────────────────────────────┐  │
+│  │ BDA Table (GPU Buffer)                     │  │
+│  │ uint64_t addresses[256]                    │  │
+│  │   [0] → 0xDEADBEEF0000  (density address)  │  │
+│  │   [1] → 0xCAFEBABE0000  (velocity address) │  │
+│  │   [2] → 0xFEEDFACE0000  (pressure address) │  │
+│  └────────────────────────────────────────────┘  │
+└──────────────┬───────────────────────────────────┘
+               │ generateGLSLHeader()
+               ▼
+┌──────────────────────────────────────────────────┐
+│          Generated GLSL Code                     │
+│                                                  │
+│  layout(push_constant) uniform FieldTable {     │
+│      uint64_t density;                           │
+│      uint64_t velocity;                          │
+│      uint64_t pressure;                          │
+│  } fields;                                       │
+│                                                  │
+│  #define Read_density(idx) ...                  │
+│  #define Write_velocity(idx, val) ...           │
+└──────────────────────────────────────────────────┘
+                </pre>
+            </div>
+
+            <div class="component-box">
+                <h4>BDA Table (Device Address Array)</h4>
+                <ul>
+                    <li>Size: 256 entries × 8 bytes = 2KB</li>
+                    <li>Memory: CPU_TO_GPU (host-mapped, persistent)</li>
+                    <li>Usage: Stores device addresses for each field buffer</li>
+                    <li>Access: Via push constants in shaders</li>
+                </ul>
+            </div>
+
+            <div class="component-box">
+                <h4>Field Buffers</h4>
+                <ul>
+                    <li>One buffer per field (SoA layout)</li>
+                    <li>Size: activeVoxelCount × elementSize</li>
+                    <li>Usage: STORAGE_BUFFER | SHADER_DEVICE_ADDRESS</li>
+                    <li>Initialization: Zero-fill or compute shader splat</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>💻 Implementation Details</h2>
+
+            <h3>1. Field Registration</h3>
+            <pre><code>const FieldDesc& registerField(const string& name, vk::Format format) {
+    // Check duplicates and limits
+    if (m_fields.count(name) > 0) throw runtime_error("Duplicate field");
+    if (m_nextDescriptorIndex >= MAX_FIELDS) throw runtime_error("MAX_FIELDS exceeded");
+    
+    // Calculate element size from format
+    uint32_t elementSize = getElementSize(format);  // 4, 8, 12, or 16 bytes
+    
+    // Allocate GPU buffer
+    vk::DeviceSize bufferSize = m_activeVoxelCount * elementSize;
+    auto buffer = m_allocator.createBuffer(
+        bufferSize,
+        vk::BufferUsageFlagBits::eStorageBuffer |
+        vk::BufferUsageFlagBits::eShaderDeviceAddress |
+        vk::BufferUsageFlagBits::eTransferDst
+    );
+    
+    // Update BDA table
+    uint32_t idx = m_nextDescriptorIndex++;
+    m_bdaTableMapped[idx] = static_cast<uint64_t>(buffer.deviceAddress);
+    
+    // Store descriptor
+    m_fields[name] = FieldDesc{name, format, elementSize, buffer, idx, buffer.deviceAddress};
+    
+    return m_fields[name];
+}</code></pre>
+
+            <h3>2. GLSL Code Generation</h3>
+            <pre><code>string generateGLSLHeader() const {
+    stringstream ss;
+    
+    // Extensions
+    ss << "#version 460\n";
+    ss << "#extension GL_EXT_buffer_reference : require\n";
+    ss << "#extension GL_EXT_buffer_reference_uvec2 : require\n\n";
+    
+    // Buffer reference types
+    for (auto& [name, desc] : m_fields) {
+        ss << "layout(buffer_reference, scalar) buffer " << name << "_Buffer { "
+           << desc.getGLSLType() << " data[]; };\n";
+    }
+    
+    // Push constant field table
+    ss << "\nlayout(push_constant) uniform FieldTable {\n";
+    for (auto& [name, desc] : m_fields) {
+        ss << "    uint64_t " << name << ";\n";
+    }
+    ss << "} fields;\n\n";
+    
+    // Accessor macros
+    for (auto& [name, desc] : m_fields) {
+        ss << "#define Read_" << name << "(idx) ("
+           << name << "_Buffer(fields." << name << ").data[idx])\n";
+        ss << "#define Write_" << name << "(idx, val) ("
+           << name << "_Buffer(fields." << name << ").data[idx] = val)\n";
+    }
+    
+    return ss.str();
+}</code></pre>
+
+            <h3>3. Field Initialization</h3>
+            <pre><code>// Strategy 1: Zero-fill (fastest, no shader compilation)
+cmd.fillBuffer(fieldBuffer.handle, 0, bufferSize, 0);
+
+// Strategy 2: Splat with compute shader (for non-zero values)
+void initializeField(const string& name, const void* value) {
+    if (!m_fillPipeline) {
+        createFillPipeline();  // Lazy compilation
+    }
+    
+    const auto& desc = getField(name);
+    float val = *static_cast<const float*>(value);
+    
+    vk::CommandBuffer cmd = beginSingleTimeCommands(pool);
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_fillPipeline);
+    
+    struct PC {
+        uint64_t bufferAddr;
+        uint32_t elementCount;
+        float value;
+    } pc = {desc.deviceAddress, m_activeVoxelCount, val};
+    
+    cmd.pushConstants(m_fillLayout, vk::ShaderStageFlagBits::eCompute, 0, pc);
+    cmd.dispatch((m_activeVoxelCount + 127) / 128, 1, 1);
+    
+    endSingleTimeCommands(cmd, pool, queue);
+}</code></pre>
+
+            <h3>4. Shader Usage Example</h3>
+            <pre><code>// Generated GLSL header is included in all compute shaders
+#include "generated/fields.glsl"
+
+// Stencil compute shader
+layout(local_size_x = 128) in;
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= activeVoxelCount) return;
+    
+    // Use generated accessor macros
+    float d = Read_density(idx);
+    vec3 v = Read_velocity(idx);
+    
+    // Compute advection
+    vec3 newVel = advect(v, d);
+    
+    // Write back
+    Write_velocity(idx, newVel);
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>📊 Format Support Matrix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>vk::Format</th>
+                        <th>GLSL Type</th>
+                        <th>Element Size</th>
+                        <th>Use Case</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>eR32Sfloat</td>
+                        <td>float</td>
+                        <td>4 bytes</td>
+                        <td>Density, temperature, pressure</td>
+                    </tr>
+                    <tr>
+                        <td>eR32G32B32Sfloat</td>
+                        <td>vec3</td>
+                        <td>12 bytes</td>
+                        <td>Velocity, force vectors</td>
+                    </tr>
+                    <tr>
+                        <td>eR32G32B32A32Sfloat</td>
+                        <td>vec4</td>
+                        <td>16 bytes</td>
+                        <td>RGBA color, quaternions</td>
+                    </tr>
+                    <tr>
+                        <td>eR32Sint</td>
+                        <td>int</td>
+                        <td>4 bytes</td>
+                        <td>State flags, indices</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>🔬 Technical Deep Dive: Buffer Device Address</h2>
+            <div class="highlight-box">
+                <h3>Why BDA over Descriptor Sets?</h3>
+                <p>
+                    Traditional Vulkan uses descriptor sets for buffer binding, which requires:
+                </p>
+                <ul>
+                    <li>Descriptor set layout creation</li>
+                    <li>Descriptor pool allocation</li>
+                    <li>Descriptor set allocation per frame</li>
+                    <li>Binding via vkCmdBindDescriptorSets</li>
+                </ul>
+                <p><strong>Buffer Device Address (BDA) eliminates all of this:</strong></p>
+                <ul>
+                    <li>✅ Direct 64-bit pointer to GPU memory</li>
+                    <li>✅ Passed via push constants (instant, no allocation)</li>
+                    <li>✅ Dynamic field registration without layout changes</li>
+                    <li>✅ Zero descriptor management overhead</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>✅ Production Readiness Checklist</h2>
+            <ul>
+                <li>✅ BDA table allocation and persistent mapping</li>
+                <li>✅ Field registration with duplicate detection</li>
+                <li>✅ MAX_FIELDS enforcement (256 limit)</li>
+                <li>✅ Format-to-element-size mapping</li>
+                <li>✅ GPU buffer allocation per field</li>
+                <li>✅ Fill compute shader pipeline</li>
+                <li>✅ Zero-fill and splat initialization</li>
+                <li>✅ GLSL code generation</li>
+                <li>✅ Complete Doxygen documentation</li>
+                <li>✅ Zero placeholders or TODOs</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>🎯 Next Steps</h2>
+            <p>With Module 3 complete, stencil computation can now access fields:</p>
+            <ul>
+                <li><strong>Module 4:</strong> Stencil Compilation - Use generated GLSL headers</li>
+                <li><strong>Module 7:</strong> Execution Graph - Pass BDA table via push constants</li>
+                <li><strong>Module 11:</strong> Scripting - Runtime field registration API</li>
+            </ul>
+        </section>
+
+        <div class="footer">
+            <p>FluidLoom Engine © 2025 | Module 3 Documentation | Generated with ❤️</p>
+        </div>
+    </div>
+</body>
+
+</html>

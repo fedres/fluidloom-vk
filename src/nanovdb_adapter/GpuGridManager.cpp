@@ -2,7 +2,7 @@
 #include "core/VulkanContext.hpp"
 #include "core/Logger.hpp"
 
-#include <nanovdb/util/IndexGrid.h>
+#include <nanovdb/NodeManager.h>
 #include <algorithm>
 
 namespace nanovdb_adapter {
@@ -32,11 +32,11 @@ GpuGridManager::GridResources GpuGridManager::upload(
     const nanovdb::GridHandle<nanovdb::HostBuffer>& grid) {
     LOG_INFO("Uploading NanoVDB grid to GPU...");
 
-    auto* hostGrid = grid.grid();
-    LOG_CHECK(hostGrid != nullptr, "Host grid is null");
+    auto* hostGrid = grid.grid<float>();
+    LOG_CHECK(hostGrid != nullptr, "Host grid is null or not a float grid");
 
     // Get grid bounds
-    nanovdb::CoordBBox gridBounds = hostGrid->gridMetaData()->indexBBox();
+    nanovdb::CoordBBox gridBounds = hostGrid->indexBBox();
     LOG_DEBUG("Grid bounds: [{},{},{}] to [{},{},{}]",
               gridBounds.min()[0], gridBounds.min()[1], gridBounds.min()[2],
               gridBounds.max()[0], gridBounds.max()[1], gridBounds.max()[2]);
@@ -46,10 +46,21 @@ GpuGridManager::GridResources GpuGridManager::upload(
     std::vector<float> activeValues;
 
     LOG_DEBUG("Collecting active voxels...");
-    auto tree = hostGrid->tree();
-    for (auto it = tree.beginValueOn(); it; ++it) {
-        activeCoords.push_back(it.getCoord());
-        activeValues.push_back(static_cast<float>(*it));
+    
+    // Use NodeManager for efficient iteration
+    auto mgrHandle = nanovdb::createNodeManager(*hostGrid);
+    auto* mgr = mgrHandle.mgr<float>();
+    
+    if (mgr) {
+        for (uint32_t i = 0; i < mgr->leafCount(); ++i) {
+            const auto& leaf = mgr->leaf(i);
+            for (auto it = leaf.valueMask().beginOn(); it; ++it) {
+                nanovdb::Coord ijk = leaf.offsetToGlobalCoord(*it);
+                float value = leaf.getValue(*it);
+                activeCoords.push_back(ijk);
+                activeValues.push_back(value);
+            }
+        }
     }
 
     uint32_t activeVoxelCount = static_cast<uint32_t>(activeCoords.size());
@@ -86,7 +97,7 @@ GpuGridManager::GridResources GpuGridManager::upload(
     resources.activeVoxelCount = activeVoxelCount;
     resources.bounds = gridBounds;
 
-    size_t gridDataSize = grid.size();
+    size_t gridDataSize = grid.bufferSize();
     resources.rawGrid = m_allocator.createBuffer(
         gridDataSize,
         vk::BufferUsageFlagBits::eStorageBuffer |

@@ -63,7 +63,7 @@ void LuaContext::bindSimulationEngine(SimulationEngine& engine) {
 
         // Parse code
         if (def["code"].valid()) {
-            stencilDef.code = def["code"].as<std::string>();
+            stencilDef.code = def["code"].get<std::string>();
         }
 
         // Parse inputs
@@ -88,14 +88,35 @@ void LuaContext::bindSimulationEngine(SimulationEngine& engine) {
 
         // Parse options
         if (def["requires_halos"].valid()) {
-            stencilDef.requiresHalos = def["requires_halos"].as<bool>();
+            stencilDef.requiresHalos = def["requires_halos"].get<bool>();
         }
 
         if (def["neighbor_radius"].valid()) {
-            stencilDef.neighborRadius = def["neighbor_radius"].as<uint32_t>();
+            stencilDef.neighborRadius = def["neighbor_radius"].get<uint32_t>();
         }
 
         self.addStencil(stencilDef);
+    };
+
+    // Graph control methods (NEW)
+    simType["build_graph"] = &SimulationEngine::buildDependencyGraph;
+    simType["get_schedule"] = [this](SimulationEngine& self) -> sol::table {
+        auto schedule = self.getExecutionSchedule();
+        sol::table result = m_lua.create_table();
+        for (size_t i = 0; i < schedule.size(); i++) {
+            result[i + 1] = schedule[i];  // Lua is 1-indexed
+        }
+        return result;
+    };
+    simType["export_graph_dot"] = &SimulationEngine::exportGraphDOT;
+    simType["set_execution_order"] = [](SimulationEngine& self, sol::table order) {
+        std::vector<std::string> schedule;
+        for (const auto& kv : order) {
+            if (kv.second.is<std::string>()) {
+                schedule.push_back(kv.second.as<std::string>());
+            }
+        }
+        self.setExecutionOrder(schedule);
     };
 
     simType["step"] = &SimulationEngine::step;

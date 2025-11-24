@@ -2,6 +2,7 @@
 
 #include "stencil/StencilDefinition.hpp"
 #include "stencil/ShaderGenerator.hpp"
+#include "stencil/PipelineCache.hpp"
 #include "core/VulkanContext.hpp"
 #include "field/FieldRegistry.hpp"
 
@@ -23,9 +24,11 @@ public:
      * Initialize stencil registry
      * @param context Vulkan context
      * @param fieldRegistry Field registry for validation
+     * @param cacheDir Directory for SPIR-V cache (default: ~/.fluidloom/shader_cache)
      */
     StencilRegistry(const core::VulkanContext& context,
-                   const field::FieldRegistry& fieldRegistry);
+                   const field::FieldRegistry& fieldRegistry,
+                   const std::filesystem::path& cacheDir = "");
 
     ~StencilRegistry();
 
@@ -61,10 +64,11 @@ public:
      */
     vk::PipelineLayout createPipelineLayout();
 
-private:
+public:
     const core::VulkanContext& m_context;
     const field::FieldRegistry& m_fieldRegistry;
     ShaderGenerator m_shaderGenerator;
+    PipelineCache m_pipelineCache;
 
     // Compiled stencils: name -> CompiledStencil
     std::unordered_map<std::string, CompiledStencil> m_stencils;
@@ -72,8 +76,8 @@ private:
     // Shared pipeline layout for all stencils
     vk::PipelineLayout m_pipelineLayout;
 
-    // Pipeline cache for fast recompilation
-    vk::PipelineCache m_pipelineCache;
+    // Vulkan pipeline cache for fast recompilation
+    vk::PipelineCache m_vkPipelineCache;
 
     /**
      * Compile GLSL source to SPIR-V (stub - full implementation requires DXC)

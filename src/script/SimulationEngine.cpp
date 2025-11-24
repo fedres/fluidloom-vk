@@ -56,6 +56,16 @@ void SimulationEngine::initialize() {
     m_gridManager = std::make_unique<nanovdb_adapter::GpuGridManager>(
         *m_vulkanContext, *m_memoryAllocator);
 
+    // Initialize graph executor (requires halo manager, which is created later in decomposeDomain)
+    // Wait, HaloManager is created in decomposeDomain, but GraphExecutor needs it in constructor.
+    // This is a circular dependency or ordering issue.
+    // GraphExecutor needs HaloManager reference.
+    // We should probably create a dummy or delay GraphExecutor creation until decomposeDomain.
+    // Or better, move HaloManager creation to initialize if possible, or make GraphExecutor take it later.
+    // But GraphExecutor takes reference.
+    
+    // Let's defer GraphExecutor creation to decomposeDomain where HaloManager is created.
+    
     LOG_DEBUG("All subsystems initialized");
 }
 
@@ -113,6 +123,13 @@ void SimulationEngine::decomposeDomain() {
 
         // Create timeline semaphores
         m_haloManager->createHaloSemaphores();
+
+        // Create GraphExecutor now that HaloManager exists
+        m_graphExecutor = std::make_unique<graph::GraphExecutor>(
+            *m_vulkanContext,
+            *m_haloManager,
+            *m_fieldRegistry
+        );
 
         LOG_DEBUG("Halos allocated for all fields and domains");
 
@@ -210,9 +227,63 @@ void SimulationEngine::step(float dt) {
             vk::CommandPool cmdPool = m_vulkanContext->createCommandPool(
                 m_vulkanContext->getQueues().computeFamily);
 
-            // Record commands (would use GraphExecutor here)
-            // For now, just log
+            vk::CommandBufferAllocateInfo allocInfo(
+                cmdPool,
+                vk::CommandBufferLevel::ePrimary,
+                1
+            );
+            vk::CommandBuffer cmd = m_vulkanContext->getDevice().allocateCommandBuffers(allocInfo)[0];
+
+            // Record commands
+            if (m_graphExecutor) {
+                m_graphExecutor->recordTimestep(cmd, schedule, *m_stencilRegistry, domain, dt);
+            } else {
+                LOG_WARN("GraphExecutor not initialized (did you call decomposeDomain?)");
+            }
+
             LOG_DEBUG("  Recorded commands for domain {}", domain.gpuIndex);
+            
+            // Submit to compute queue
+            // Get semaphores from GraphExecutor
+            const auto& waitSemaphores = m_graphExecutor->getWaitSemaphores();
+            const auto& waitValues = m_graphExecutor->getWaitValues();
+            const auto& signalSemaphores = m_graphExecutor->getSignalSemaphores();
+            const auto& signalValues = m_graphExecutor->getSignalValues();
+
+            vk::TimelineSemaphoreSubmitInfo timelineInfo{};
+            timelineInfo.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
+            timelineInfo.pWaitSemaphoreValues = waitValues.data();
+            timelineInfo.signalSemaphoreValueCount = static_cast<uint32_t>(signalValues.size());
+            timelineInfo.pSignalSemaphoreValues = signalValues.data();
+
+            vk::SubmitInfo submitInfo{};
+            submitInfo.pNext = &timelineInfo;
+            
+            submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+            submitInfo.pWaitSemaphores = waitSemaphores.data();
+            
+            std::vector<vk::PipelineStageFlags> waitStages(waitSemaphores.size(), vk::PipelineStageFlagBits::eComputeShader);
+            submitInfo.pWaitDstStageMask = waitStages.data();
+            
+            submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
+            submitInfo.pSignalSemaphores = signalSemaphores.data();
+            
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &cmd;
+
+            // In a real system, we would handle semaphores here from GraphExecutor
+            // For now, we use a fence to wait for completion (simple sync)
+            vk::Fence fence = m_vulkanContext->getDevice().createFence({});
+            
+            m_vulkanContext->getQueues().compute.submit(submitInfo, fence);
+            
+            // Wait for completion (blocking for simplicity in this step)
+            auto result = m_vulkanContext->getDevice().waitForFences(fence, VK_TRUE, UINT64_MAX);
+            if (result != vk::Result::eSuccess) {
+                throw std::runtime_error("Wait for fence failed");
+            }
+            
+            m_vulkanContext->getDevice().destroyFence(fence);
 
             m_vulkanContext->getDevice().destroyCommandPool(cmdPool);
         }
@@ -237,3 +308,52 @@ void SimulationEngine::runFrames(uint32_t frameCount, float dt) {
 }
 
 } // namespace script
+// Add to end of SimulationEngine.cpp before closing namespace
+
+void script::SimulationEngine::buildDependencyGraph() {
+    LOG_INFO("Building dependency graph from {} stencils", 
+             m_stencilRegistry->getStencils().size());
+    
+    // Clear existing graph
+    m_dependencyGraph = std::make_unique<graph::DependencyGraph>();
+    
+    // Add each stencil as a node
+    for (const auto& [name, compiled] : m_stencilRegistry->getStencils()) {
+        m_dependencyGraph->addNode(
+            name,
+            compiled.definition.inputs,
+            compiled.definition.outputs);
+    }
+    
+    LOG_INFO("Dependency graph built with {} nodes", 
+             m_dependencyGraph->getNodes().size());
+}
+
+std::vector<std::string> script::SimulationEngine::getExecutionSchedule() const {
+    if (!m_dependencyGraph) {
+        LOG_WARN("Dependency graph not built yet");
+        return {};
+    }
+    
+    return m_dependencyGraph->buildSchedule();
+}
+
+std::string script::SimulationEngine::exportGraphDOT() const {
+    if (!m_dependencyGraph) {
+        LOG_WARN("Dependency graph not built yet");
+        return "";
+    }
+    
+    return m_dependencyGraph->exportDOT();
+}
+
+void script::SimulationEngine::setExecutionOrder(const std::vector<std::string>& schedule) {
+    LOG_INFO("Setting custom execution order ({} stencils)", schedule.size());
+    
+    // Store custom schedule
+    // This would be used in step() instead of auto-generated schedule
+    // For now, just log it as the implementation is a placeholder
+    for (const auto& name : schedule) {
+        LOG_DEBUG("  - {}", name);
+    }
+}

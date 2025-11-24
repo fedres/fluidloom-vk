@@ -1,0 +1,65 @@
+[15:22:03.422] [info] [thread 74921446] Logger initialized successfully
+[15:22:03.423] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.423] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.423] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.423] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.424] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.424] [info] [thread 74921446] Execution schedule built: 4 stencils
+[15:22:03.424] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.424] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.424] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.424] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.424] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.424] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.425] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.425] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.425] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.425] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.425] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.425] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.425] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.429] [info] [thread 74921446] Execution schedule built: 100 stencils
+[15:22:03.432] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.432] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.433] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.433] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.433] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.433] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.433] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.433] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.433] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.433] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.433] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.433] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.433] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.433] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.434] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.434] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.434] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.434] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.434] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.434] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.434] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.434] [info] [thread 74921446] Execution schedule built: 3 stencils
+[15:22:03.434] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.434] [info] [thread 74921446] Execution schedule built: 2 stencils
+[15:22:03.434] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.434] [info] [thread 74921446] Execution schedule built: 1 stencils
+[15:22:03.434] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.434] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.434] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.435] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.435] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.435] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.435] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.435] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.435] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.435] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.435] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.435] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured
+[15:22:03.435] [info] [thread 74921446] Building execution schedule from dependency graph
+[15:22:03.435] [info] [thread 74921446] Execution schedule built: 0 stencils
+[15:22:03.435] [info] [thread 74921446] Initializing volk (Vulkan meta-loader)...
+[15:22:03.435] [info] [thread 74921446] VK_ICD_FILENAMES already set to: /opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json
+[15:22:03.435] [error] [thread 74921446] Failed to initialize volk. Error code: -3
+[15:22:03.435] [error] [thread 74921446] Make sure Vulkan SDK is installed and environment variables are configured

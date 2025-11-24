@@ -1,7 +1,9 @@
 #include "domain/DomainSplitter.hpp"
 #include "core/Logger.hpp"
 
-#include <nanovdb/util/GridBuilder.h>
+#include <nanovdb/tools/GridBuilder.h>
+#include <nanovdb/tools/CreateNanoGrid.h>
+#include <nanovdb/NodeManager.h>
 #include <algorithm>
 #include <cmath>
 #include <numeric>
@@ -26,6 +28,11 @@ uint64_t DomainSplitter::getMortonCode(const nanovdb::Coord& coord) {
     return expandBits(x) | (expandBits(y) << 1) | (expandBits(z) << 2);
 }
 
+DomainSplitter::DomainSplitter()
+    : m_config() {
+    LOG_DEBUG("DomainSplitter initialized with default config ({} GPUs)", m_config.gpuCount);
+}
+
 DomainSplitter::DomainSplitter(const SplitConfig& config)
     : m_config(config) {
     LOG_DEBUG("DomainSplitter initialized with {} GPUs", m_config.gpuCount);
@@ -35,25 +42,26 @@ std::vector<SubDomain> DomainSplitter::split(
     const nanovdb::GridHandle<nanovdb::HostBuffer>& grid) {
     LOG_INFO("Starting domain split for {} GPUs", m_config.gpuCount);
 
-    auto* hostGrid = grid.grid();
+    auto* hostGrid = grid.grid<float>();
     LOG_CHECK(hostGrid != nullptr, "Host grid is null");
 
     // Single GPU case
     if (m_config.gpuCount == 1) {
         SubDomain domain;
         domain.gpuIndex = 0;
-        domain.bounds = hostGrid->gridMetaData()->indexBBox();
+        domain.bounds = hostGrid->indexBBox();
 
         // Collect all leaf nodes
-        auto tree = hostGrid->tree();
-        for (auto it = tree.beginLeaf(); it; ++it) {
-            domain.assignedLeaves.push_back(it->bbox());
+        auto mgrHandle = nanovdb::createNodeManager(*hostGrid);
+        auto* mgr = mgrHandle.mgr<float>();
+        
+        if (mgr) {
+            for (uint32_t i = 0; i < mgr->leafCount(); ++i) {
+                domain.assignedLeaves.push_back(mgr->leaf(i).bbox());
+            }
         }
 
-        // Count active voxels
-        for (auto it = tree.beginValueOn(); it; ++it) {
-            domain.activeVoxelCount++;
-        }
+        domain.activeVoxelCount = hostGrid->activeVoxelCount();
 
         LOG_INFO("Single GPU domain: {} active voxels", domain.activeVoxelCount);
         return {domain};
@@ -61,13 +69,17 @@ std::vector<SubDomain> DomainSplitter::split(
 
     // Multi-GPU case: collect and sort leaf nodes
     std::vector<std::pair<nanovdb::CoordBBox, uint64_t>> leafBoxesWithMorton;
-    auto tree = hostGrid->tree();
+    
+    auto mgrHandle = nanovdb::createNodeManager(*hostGrid);
+    auto* mgr = mgrHandle.mgr<float>();
 
     LOG_DEBUG("Collecting leaf nodes...");
-    for (auto it = tree.beginLeaf(); it; ++it) {
-        nanovdb::CoordBBox leafBox = it->bbox();
-        uint64_t mortonCode = getMortonCode(leafBox.min());
-        leafBoxesWithMorton.push_back({leafBox, mortonCode});
+    if (mgr) {
+        for (uint32_t i = 0; i < mgr->leafCount(); ++i) {
+            nanovdb::CoordBBox leafBox = mgr->leaf(i).bbox();
+            uint64_t mortonCode = getMortonCode(leafBox.min());
+            leafBoxesWithMorton.push_back({leafBox, mortonCode});
+        }
     }
 
     // Sort by Morton code for spatial locality
@@ -111,9 +123,22 @@ std::vector<SubDomain> DomainSplitter::split(
 
             // Count active voxels in this domain
             uint32_t domainVoxels = 0;
-            for (auto it = tree.beginValueOn(); it; ++it) {
-                if (currentBounds.isInside(it.getCoord())) {
-                    domainVoxels++;
+            // Re-iterate to count voxels in this domain (approximate or exact?)
+            // Exact count requires iterating voxels.
+            // Using NodeManager again is efficient.
+            if (mgr) {
+                 for (uint32_t i = 0; i < mgr->leafCount(); ++i) {
+                    const auto& leaf = mgr->leaf(i);
+                    if (currentBounds.isInside(leaf.bbox().min())) { // Approximate check using leaf origin/bbox
+                         // Better: check intersection
+                         if (currentBounds.hasOverlap(leaf.bbox())) {
+                             for (auto it = leaf.valueMask().beginOn(); it; ++it) {
+                                 if (currentBounds.isInside(leaf.offsetToGlobalCoord(*it))) {
+                                     domainVoxels++;
+                                 }
+                             }
+                         }
+                    }
                 }
             }
             domains[currentGpu].activeVoxelCount = domainVoxels;
@@ -133,7 +158,7 @@ std::vector<SubDomain> DomainSplitter::split(
     // Trim unused domains
     domains.erase(
         std::remove_if(domains.begin(), domains.end(),
-                      [](const SubDomain& d) { return d.assignedLeaves.empty(); }),
+                       [](const SubDomain& d) { return d.assignedLeaves.empty(); }),
         domains.end());
 
     // Compute neighbors for halo exchange
@@ -152,28 +177,38 @@ nanovdb::GridHandle<nanovdb::HostBuffer> DomainSplitter::extract(
     const SubDomain& domain) {
     LOG_DEBUG("Extracting sub-grid for domain {}", domain.gpuIndex);
 
-    auto* hostGrid = fullGrid.grid();
-    auto tree = hostGrid->tree();
-
-    // Get grid value type
-    nanovdb::GridType gridType = hostGrid->gridType();
-
+    auto* hostGrid = fullGrid.grid<float>();
+    
     // Create builder for sub-grid
-    nanovdb::GridBuilder<float> builder(0.0f);
+    nanovdb::tools::build::Grid<float> builder(0.0f);
 
-    // Iterate all active voxels in full grid
-    for (auto it = tree.beginValueOn(); it; ++it) {
-        nanovdb::Coord coord = it.getCoord();
+    // Iterate all active voxels in full grid using NodeManager
+    auto mgrHandle = nanovdb::createNodeManager(*hostGrid);
+    auto* mgr = mgrHandle.mgr<float>();
+    
+    if (mgr) {
+        for (uint32_t i = 0; i < mgr->leafCount(); ++i) {
+            const auto& leaf = mgr->leaf(i);
+            // Optimization: check if leaf bbox overlaps with domain
+            if (!domain.bounds.hasOverlap(leaf.bbox())) continue;
+            
+            for (auto it = leaf.valueMask().beginOn(); it; ++it) {
+                nanovdb::Coord coord = leaf.offsetToGlobalCoord(*it);
 
-        // Include if voxel is within domain bounds
-        if (domain.bounds.isInside(coord)) {
-            builder.setValue(coord, static_cast<float>(*it));
+                // Include if voxel is within domain bounds
+                if (domain.bounds.isInside(coord)) {
+                    builder.setValue(coord, leaf.getValue(*it));
+                }
+            }
         }
     }
 
-    auto subHandle = builder.getHandle();
+#include <nanovdb/tools/CreateNanoGrid.h>
+
+    // Convert builder grid to NanoVDB GridHandle
+    auto subHandle = nanovdb::tools::createNanoGrid(builder);
     LOG_DEBUG("Sub-grid extracted: {} active voxels",
-              subHandle.grid()->activeVoxelCount());
+              subHandle.grid<float>()->activeVoxelCount());
 
     return subHandle;
 }

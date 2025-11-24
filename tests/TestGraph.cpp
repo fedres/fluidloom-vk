@@ -2,7 +2,7 @@
 #include "graph/DependencyGraph.hpp"
 #include "stencil/StencilDefinition.hpp"
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 /**
  * Test Suite: Execution Graph (Dependency Scheduling)

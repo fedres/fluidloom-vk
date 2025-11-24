@@ -1,0 +1,30 @@
+FROM khronosgroup/vulkan-sdk:latest.ubuntu22.04
+
+# Set non-interactive mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install additional dependencies
+RUN apt-get update && apt-get install -y \
+    cmake \
+    ninja-build \
+    git \
+    liblua5.4-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the project
+WORKDIR /fluidloom
+COPY . .
+
+# Create clean build directory
+RUN rm -rf build && mkdir -p build
+
+# Build the project
+WORKDIR /fluidloom/build
+RUN cmake .. \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_CXX_STANDARD=20 \
+    && cmake --build . -j$(nproc)
+
+# Run tests
+ENTRYPOINT ["./tests/fluidloom_tests"]
+CMD []

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include <nanovdb/NanoVDB.h>
+#include <nanovdb/GridHandle.h>
+#include <nanovdb/HostBuffer.h>
 #include <filesystem>
 #include <memory>
 
@@ -27,7 +31,7 @@ public:
      * @param grid Grid to validate
      * @throws std::runtime_error if grid type is unsupported
      */
-    static void validateGridType(const nanovdb::GridBase* grid);
+    static void validateGridType(const nanovdb::GridData* grid);
 };
 
 } // namespace nanovdb_adapter

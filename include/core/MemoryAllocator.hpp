@@ -43,17 +43,55 @@ public:
      * @param size Buffer size in bytes
      * @param usage Vulkan buffer usage flags
      * @param memoryUsage VMA memory usage type
+     * @param name Optional debug name for the buffer
      * @return Allocated buffer descriptor
      */
     Buffer createBuffer(vk::DeviceSize size,
                        vk::BufferUsageFlags usage,
-                       VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO);
+                       VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO,
+                       const char* name = nullptr);
+
+    /**
+     * Allocate a buffer (alias for createBuffer for test compatibility)
+     * @param size Buffer size in bytes
+     * @param usage Vulkan buffer usage flags
+     * @param memoryUsage VMA memory usage type
+     * @param name Optional debug name for the buffer
+     * @return Allocated buffer descriptor
+     */
+    Buffer allocateBuffer(vk::DeviceSize size,
+                         vk::BufferUsageFlags usage,
+                         VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO,
+                         const char* name = nullptr) {
+        return createBuffer(size, usage, memoryUsage, name);
+    }
 
     /**
      * Destroy and deallocate a buffer
      * @param buffer Buffer to destroy
      */
     void destroyBuffer(Buffer& buffer);
+
+    /**
+     * Free a buffer (alias for destroyBuffer for test compatibility)
+     * @param buffer Buffer to free
+     */
+    void freeBuffer(Buffer& buffer) {
+        destroyBuffer(buffer);
+    }
+
+    /**
+     * Map buffer memory for CPU access
+     * @param buffer Buffer to map
+     * @return Pointer to mapped memory
+     */
+    void* mapBuffer(const Buffer& buffer);
+
+    /**
+     * Unmap buffer memory
+     * @param buffer Buffer to unmap
+     */
+    void unmapBuffer(const Buffer& buffer);
 
     /**
      * Copy data from CPU to GPU using a staging buffer

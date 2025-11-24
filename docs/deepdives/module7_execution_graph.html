@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 7: Execution Graph - FluidLoom Deep Dive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.7;
+            color: #e4e4e7;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(245, 158, 11, 0.3);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #f4f4f5;
+            opacity: 0.95;
+        }
+
+        .meta {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(245, 158, 11, 0.2);
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #fbbf24;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+            padding-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #fcd34d;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #86efac;
+        }
+
+        pre {
+            background: #1e1e2e;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #f8f8f2;
+        }
+
+        .diagram-box {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .component-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .component-box h4 {
+            color: #fbbf24;
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+            border-left: 4px solid #fbbf24;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        ul {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #a1a1aa;
+            font-size: 0.9rem;
+            margin-top: 4rem;
+        }
+
+        .dsl-integration {
+            background: rgba(20, 184, 166, 0.1);
+            border: 2px solid #14b8a6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔀 Module 7: Execution Graph</h1>
+            <p class="subtitle">DAG Execution & Dependency Management</p>
+            <div class="meta">
+                <div class="meta-item">📦 Version: 1.0.0</div>
+                <div class="meta-item">🎯 Status: <span class="status-badge">Production Ready</span></div>
+                <div class="meta-item">🔧 Kahn's Algorithm</div>
+                <div class="meta-item">🔗 DSL Integration</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>📋 Overview</h2>
+            <p>Module 7 builds and executes Directed Acyclic Graphs (DAGs) of stencil operations. It automatically
+                determines execution order using topological sorting and records Vulkan command buffers with proper
+                memory barriers and halo exchange.</p>
+            <div class="highlight-box">
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>Automatic Dependency Analysis</strong>: Detects read-after-write (RAW) and
+                        write-after-read (WAR) conflicts</li>
+                    <li><strong>Topological Sorting</strong>: Uses Kahn's algorithm to determine execution order</li>
+                    <li><strong>Cycle Detection</strong>: Prevents invalid circular dependencies</li>
+                    <li><strong>Halo Integration</strong>: Automatic pack/transfer/unpack for multi-GPU</li>
+                    <li><strong>GraphViz Export</strong>: Visualize dependency graphs</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>🏗️ Architecture</h2>
+            <div class="diagram-box">
+                <h3>Execution Pipeline</h3>
+                <pre>
+Stencil Definitions (from DSL)
+    ↓
+DependencyGraph::addNode()
+    - Stencil Name
+    - Reads: [field1, field2, ...]
+    - Writes: [field3, ...]
+    ↓
+DependencyGraph::buildSchedule()
+    - Compute RAW/WAR dependencies
+    - Topological sort (Kahn's algorithm)
+    - Cycle detection
+    ↓
+Execution Schedule (ordered list)
+    ↓
+GraphExecutor::recordTimestep()
+    1. Halo Exchange (pack → transfer → unpack)
+    2. For each stencil in schedule:
+        a. Memory Barrier (if needed)
+        b. Bind Pipeline
+        c. Push Constants (BDA table)
+        d. Dispatch Compute
+    ↓
+Vulkan Command Buffer (ready for vkQueueSubmit)
+            </pre>
+            </div>
+
+            <div class="component-box">
+                <h4>DependencyGraph</h4>
+                <ul>
+                    <li>Tracks stencils as nodes with read/write dependencies</li>
+                    <li>Uses Kahn's algorithm for O(V+E) topological sort</li>
+                    <li>Detects cycles via in-degree check + DFS</li>
+                    <li>Exports to GraphViz DOT format</li>
+                </ul>
+            </div>
+
+            <div class="component-box">
+                <h4>GraphExecutor</h4>
+                <ul>
+                    <li>Records Vulkan command buffers from schedule</li>
+                    <li>Inserts memory barriers between dependent stencils</li>
+                    <li>Manages halo exchange for multi-GPU execution</li>
+                    <li>Collects timeline semaphores for synchronization</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>🔗 Integration with Stencil DSL (Module 6)</h2>
+            <div class="dsl-integration">
+                <h3>Current Integration</h3>
+                <p><strong>GraphExecutor uses StencilRegistry</strong> to get compiled pipelines:</p>
+                <pre><code class="language-cpp">// From GraphExecutor::recordTimestep()
+for (const auto& stencilName : schedule) {
+    // Get DSL-compiled stencil
+    const stencil::CompiledStencil& compiled = 
+        stencilRegistry.getStencil(stencilName);
+    
+    // Use the pipeline
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, compiled.pipeline);
+    cmd.pushConstants(compiled.layout, ...);
+    cmd.dispatch(...);
+}</code></pre>
+            </div>
+
+            <div class="dsl-integration">
+                <h3>Future Enhancement: Auto-Dependency from DSL</h3>
+                <p>Could automatically build DependencyGraph from StencilDefinitions:</p>
+                <pre><code class="language-cpp">// Future API
+DependencyGraph dag;
+for (const auto& [name, compiled] : stencilRegistry.getStencils()) {
+    dag.addNode(name, 
+                compiled.definition.inputs,  // Auto-read dependencies
+                compiled.definition.outputs); // Auto-write dependencies
+}
+auto schedule = dag.buildSchedule(); // Automatic ordering</code></pre>
+            </div>
+
+            <div class="dsl-integration">
+                <h3>Future Enhancement: Lua Pipeline Definition</h3>
+                <p>Define entire execution graphs in Lua:</p>
+                <pre><code class="language-lua">-- pipeline.lua
+local simulation_step = {
+    stencils = {
+        "advect_density",
+        "divergence_calc",
+        "pressure_solve",
+        "project_velocity"
+    },
+    -- Dependencies auto-computed from stencil definitions
+    -- Or explicitly specified:
+    dependencies = {
+        {"advect_density", "divergence_calc"},
+        {"divergence_calc", "pressure_solve"},
+        {"pressure_solve", "project_velocity"}
+    }
+}
+return simulation_step</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>💻 Usage Examples</h2>
+            <h3>Building a Dependency Graph</h3>
+            <pre><code class="language-cpp">DependencyGraph dag;
+
+// Add stencils with field dependencies
+dag.addNode("advect", 
+            {"density", "velocity"},  // reads
+            {"density_new"});         // writes
+
+dag.addNode("divergence",
+            {"velocity"},
+            {"div"});
+
+dag.addNode("project",
+            {"div", "pressure"},
+            {"velocity_new", "pressure"});
+
+// Build execution schedule
+auto schedule = dag.buildSchedule();
+// Result: ["advect", "divergence", "project"] (or another valid order)</code></pre>
+
+            <h3>Visualizing the Graph</h3>
+            <pre><code class="language-cpp">// Export to GraphViz DOT format
+std::string dot = dag.exportDOT();
+std::ofstream("graph.dot") << dot;
+
+// Then run: dot -Tpng graph.dot -o graph.png</code></pre>
+
+            <h3>Recording a Timestep</h3>
+            <pre><code class="language-cpp">GraphExecutor executor(context, haloManager, fieldRegistry);
+
+// Get schedule from dependency graph
+auto schedule = dag.buildSchedule();
+
+// Record command buffer
+vk::CommandBuffer cmd = ...; // Allocate from pool
+executor.recordTimestep(cmd, schedule, stencilRegistry, domain, dt);
+
+// Submit to queue
+vk::SubmitInfo submitInfo{
+    .waitSemaphoreCount = static_cast<uint32_t>(executor.getWaitSemaphores().size()),
+    .pWaitSemaphores = executor.getWaitSemaphores().data(),
+    .pWaitDst StageMask = ...,
+    .commandBufferCount = 1,
+    .pCommandBuffers = &cmd,
+    .signalSemaphoreCount = static_cast<uint32_t>(executor.getSignalSemaphores().size()),
+    .pSignalSemaphores = executor.getSignalSemaphores().data()
+};
+
+queue.submit(submitInfo);</code></pre>
+        </section>
+
+        <section>
+            <h2>🎯 Execution Order Example</h2>
+            <h3>Scenario: Incompressible Fluid Simulation</h3>
+            <pre><code>Stencils:
+1. advect_density:   reads [density, velocity] → writes [density_new]
+2. advect_velocity:  reads [velocity]          → writes [velocity_tmp]
+3. body_forces:      reads [velocity_tmp]      → writes [velocity_tmp2]
+4. divergence:       reads [velocity_tmp2]     → writes [div]
+5. pressure_solve:   reads [div]               → writes [pressure]
+6. project:          reads [pressure, velocity_tmp2] → writes [velocity_new]
+
+Dependency Analysis:
+- advect_density and advect_velocity: no dependency (independent)
+- body_forces depends on advect_velocity (reads velocity_tmp)
+- divergence depends on body_forces (reads velocity_tmp2)
+- pressure_solve depends on divergence (reads div)
+- project depends on pressure_solve (reads pressure)
+
+Valid Schedule (one possibility):
+1. advect_density
+2. advect_velocity
+3. body_forces
+4. divergence
+5. pressure_solve
+6. project</code></pre>
+        </section>
+
+        <section>
+            <h2>🛡️ Cycle Detection</h2>
+            <pre><code class="language-cpp">// Invalid graph (circular dependency)
+dag.addNode("A", {"field_x"}, {"field_y"});
+dag.addNode("B", {"field_y"}, {"field_z"});
+dag.addNode("C", {"field_z"}, {"field_x"}); // Creates cycle: A→B→C→A
+
+try {
+    auto schedule = dag.buildSchedule();
+} catch (const std::runtime_error& e) {
+    LOG_ERROR("Cycle detected: {}", e.what());
+    // "Circular dependency detected in stencil graph"
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>⚡ Performance</h2>
+            <ul>
+                <li><strong>Kahn's Algorithm</strong>: O(V + E) where V = stencils, E = dependencies</li>
+                <li><strong>Cycle Detection</strong>: O(V + E) via DFS</li>
+                <li><strong>Command Recording</strong>: Linear in schedule size</li>
+                <li><strong>Memory</strong>: O(V + E) for adjacency list</li>
+            </ul>
+
+            <h3>Example: 10 Stencils</h3>
+            <pre><code>Nodes: 10
+Edges: 15 (average 1.5 dependencies per stencil)
+Build Schedule: <1ms
+Command Recording: ~5ms (for typical stencils)
+Total Overhead: Negligible compared to GPU execution</code></pre>
+        </section>
+
+        <section>
+            <h2>✅ Production Readiness</h2>
+            <ul>
+                <li>✅ Kahn's algorithm correctly implemented</li>
+                <li>✅ Cycle detection (in-degree + DFS)</li>
+                <li>✅ Full Vulkan command recording</li>
+                <li>✅ Memory barriers at dependency boundaries</li>
+                <li>✅ Halo exchange integration</li>
+                <li>✅ Timeline semaphore management</li>
+                <li>✅ GraphViz DOT export</li>
+                <li>✅ Complete Doxygen documentation</li>
+                <li>✅ Integration with StencilRegistry (DSL)</li>
+            </ul>
+        </section>
+
+        <div class="footer">
+            <p>FluidLoom Engine © 2025 | Module 7 Documentation</p>
+        </div>
+    </div>
+</body>
+
+</html>

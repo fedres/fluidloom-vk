@@ -1,9 +1,12 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
-#include <vk-bootstrap/VkBootstrap.h>
-#include <cstdint>
+// Include Vulkan configuration with proper Volk setup
+#include "VulkanConfig.hpp"
+
+// Include other headers
+#include <VkBootstrap.h>
 #include <memory>
+#include <vector>
 
 namespace core {
 
@@ -60,19 +63,29 @@ public:
     const Queues& getQueues() const { return m_queues; }
 
     /**
+     * Get the compute queue
+     */
+    vk::Queue getComputeQueue() const { return m_queues.compute; }
+
+    /**
+     * Get the compute queue family index
+     */
+    uint32_t getComputeQueueFamily() const { return m_queues.computeFamily; }
+
+    /**
      * Create a command pool for recording commands
      * @param queueFamily Queue family index
      * @param flags Optional command pool creation flags
      */
     vk::CommandPool createCommandPool(uint32_t queueFamily,
-                                      vk::CommandPoolCreateFlags flags = {});
+                                      vk::CommandPoolCreateFlags flags = {}) const;
 
     /**
      * Helper to begin recording a single-time-use command buffer
      * @param pool Command pool to allocate from
      * @return Command buffer ready for recording
      */
-    vk::CommandBuffer beginSingleTimeCommands(vk::CommandPool pool);
+    vk::CommandBuffer beginSingleTimeCommands(vk::CommandPool pool) const;
 
     /**
      * Helper to end, submit, and wait for a single-time command buffer
@@ -80,7 +93,7 @@ public:
      * @param pool Command pool that allocated the buffer
      * @param queue Queue to submit to
      */
-    void endSingleTimeCommands(vk::CommandBuffer cmd, vk::CommandPool pool, vk::Queue queue);
+    void endSingleTimeCommands(vk::CommandBuffer cmd, vk::CommandPool pool, vk::Queue queue) const;
 
     /**
      * Check if a specific feature is supported

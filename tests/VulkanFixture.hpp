@@ -1,13 +1,17 @@
 #pragma once
 
+// IMPORTANT: Include VulkanConfig FIRST to configure volk and Vulkan headers
+#include "core/VulkanConfig.hpp"
 #include "core/VulkanContext.hpp"
+#include "core/Logger.hpp"
 #include "core/MemoryAllocator.hpp"
 #include "nanovdb_adapter/GridLoader.hpp"
 #include "nanovdb_adapter/GpuGridManager.hpp"
 #include "field/FieldRegistry.hpp"
 
 #include <catch2/catch_test_macros.hpp>
-#include <nanovdb/GridBuilder.h>
+#include <nanovdb/tools/GridBuilder.h>
+#include <nanovdb/tools/CreateNanoGrid.h>
 #include <vector>
 #include <memory>
 
@@ -98,17 +102,34 @@ protected:
 
 inline VulkanFixture::VulkanFixture()
 {
-    m_context = std::make_unique<core::VulkanContext>();
-    m_allocator = std::make_unique<core::MemoryAllocator>(*m_context);
+    // Initialize logger first
+    core::Logger::init();
+    
+    try {
+        // On macOS, ensure Vulkan can find MoltenVK ICD
+        #ifdef __APPLE__
+        const char* icdPath = "/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json";
+        setenv("VK_ICD_FILENAMES", icdPath, 0);  // Don't overwrite if already set
+        setenv("VK_DRIVER_FILES", icdPath, 0);
+        #endif
+        
+        // Create Vulkan context in headless mode (no validation for faster tests)
+        m_context = std::make_unique<core::VulkanContext>();
+        m_context->init(false); // Disable validation for tests
+        
+        // Create memory allocator
+        m_allocator = std::make_unique<core::MemoryAllocator>(*m_context);
 
-    // Create command pool for test operations
-    auto result = m_context->getDevice().createCommandPool(
-        vk::CommandPoolCreateInfo{
-            .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-            .queueFamilyIndex = m_context->getComputeQueueFamily()});
+        // Create command pool for test operations
+        vk::CommandPoolCreateInfo poolInfo(
+            vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+            m_context->getComputeQueueFamily());
 
-    REQUIRE(result.result == vk::Result::eSuccess);
-    m_commandPool = result.value;
+        m_commandPool = m_context->getDevice().createCommandPool(poolInfo);
+        
+    } catch (const std::exception& e) {
+        FAIL("Failed to initialize VulkanFixture: " << e.what());
+    }
 }
 
 inline VulkanFixture::~VulkanFixture()
@@ -120,29 +141,22 @@ inline VulkanFixture::~VulkanFixture()
 
 inline vk::CommandBuffer VulkanFixture::beginCommand()
 {
-    auto allocResult = m_context->getDevice().allocateCommandBuffers(
-        vk::CommandBufferAllocateInfo{
-            .commandPool = m_commandPool,
-            .level = vk::CommandBufferLevel::ePrimary,
-            .commandBufferCount = 1});
+    vk::CommandBufferAllocateInfo allocInfo(
+        m_commandPool,
+        vk::CommandBufferLevel::ePrimary,
+        1);
 
-    REQUIRE(allocResult.result == vk::Result::eSuccess);
-    return allocResult.value[0];
+    auto buffers = m_context->getDevice().allocateCommandBuffers(allocInfo);
+    return buffers[0];
 }
 
 inline void VulkanFixture::endCommand(vk::CommandBuffer cmd)
 {
     cmd.end();
 
-    vk::SubmitInfo submitInfo{};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
-
-    auto submitResult = m_context->getComputeQueue().submit(submitInfo);
-    REQUIRE(submitResult == vk::Result::eSuccess);
-
-    auto waitResult = m_context->getComputeQueue().waitIdle();
-    REQUIRE(waitResult == vk::Result::eSuccess);
+    vk::SubmitInfo submitInfo(0, nullptr, nullptr, 1, &cmd);
+    m_context->getComputeQueue().submit(submitInfo);
+    m_context->getComputeQueue().waitIdle();
 
     m_context->getDevice().freeCommandBuffers(m_commandPool, cmd);
 }
@@ -150,35 +164,53 @@ inline void VulkanFixture::endCommand(vk::CommandBuffer cmd)
 inline nanovdb::GridHandle<nanovdb::HostBuffer>
 VulkanFixture::createTestGrid(uint32_t size, float value)
 {
-    nanovdb::GridBuilder<float> builder(0.0f);
+    // Create a CPU-side grid using NanoVDB's build tools
+    using SrcGridT = nanovdb::tools::build::FloatGrid;
 
+    SrcGridT srcGrid(0.0f);  // background value
+    auto acc = srcGrid.getAccessor();
+
+    // Fill with constant value
     for (uint32_t x = 0; x < size; ++x) {
         for (uint32_t y = 0; y < size; ++y) {
             for (uint32_t z = 0; z < size; ++z) {
-                builder.setValue(nanovdb::Coord(x, y, z), value);
+                if (value != 0.0f) {
+                    acc.setValue(nanovdb::Coord(x, y, z), value);
+                }
             }
         }
     }
 
-    return builder.getHandle<nanovdb::HostBuffer>();
+    // Convert to NanoGrid
+    auto handle = nanovdb::tools::createNanoGrid(srcGrid);
+    return handle;
 }
 
 inline nanovdb::GridHandle<nanovdb::HostBuffer>
 VulkanFixture::createGradientTestGrid(uint32_t size)
 {
-    nanovdb::GridBuilder<float> builder(0.0f);
+    // Create a CPU-side grid using NanoVDB's build tools
+    using SrcGridT = nanovdb::tools::build::FloatGrid;
 
+    SrcGridT srcGrid(0.0f);  // background value
+    auto acc = srcGrid.getAccessor();
+
+    // Fill with gradient values
     float maxVal = 3.0f * size;
     for (uint32_t x = 0; x < size; ++x) {
         for (uint32_t y = 0; y < size; ++y) {
             for (uint32_t z = 0; z < size; ++z) {
-                float value = (x + y + z) / maxVal;
-                builder.setValue(nanovdb::Coord(x, y, z), value);
+                float gradValue = (x + y + z) / maxVal;
+                if (gradValue != 0.0f) {
+                    acc.setValue(nanovdb::Coord(x, y, z), gradValue);
+                }
             }
         }
     }
 
-    return builder.getHandle<nanovdb::HostBuffer>();
+    // Convert to NanoGrid
+    auto handle = nanovdb::tools::createNanoGrid(srcGrid);
+    return handle;
 }
 
 inline bool VulkanFixture::buffersEqual(const std::vector<float>& a,

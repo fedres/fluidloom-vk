@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/VulkanContext.hpp"
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <cstdint>
@@ -28,13 +29,19 @@ public:
         uint32_t dstFace = 0;             // Destination face (opposite)
         uint64_t signalValue = 0;         // Semaphore value to signal after transfer
         uint64_t waitValue = 0;           // Semaphore value to wait for before use
+        std::string fieldName;            // Name of the field being exchanged
     };
 
     /**
      * Initialize halo synchronization
      * @param gpuCount Number of GPUs in simulation
      */
-    explicit HaloSync(uint32_t gpuCount);
+    explicit HaloSync(uint32_t gpuCount, const core::VulkanContext& context);
+
+    /**
+     * Create compute pipelines for pack/unpack
+     */
+    void createPipelines();
 
     /**
      * Record halo pack operation (extract boundary voxels)
@@ -44,9 +51,10 @@ public:
      * @param value Semaphore value to signal
      */
     void recordHaloPack(vk::CommandBuffer cmd,
-                       uint32_t gpu,
-                       vk::Semaphore sem,
-                       uint64_t value);
+                       vk::Buffer fieldBuffer,
+                       vk::Buffer haloBuffer,
+                       uint32_t offset,
+                       uint32_t count);
 
     /**
      * Record halo transfer operation (copy between GPUs)
@@ -59,12 +67,9 @@ public:
      * @param signalValue Semaphore value to signal
      */
     void recordHaloTransfer(vk::CommandBuffer cmd,
-                           uint32_t srcGpu,
-                           uint32_t dstGpu,
-                           vk::Semaphore waitSem,
-                           uint64_t waitValue,
-                           vk::Semaphore signalSem,
-                           uint64_t signalValue);
+                           vk::Buffer srcBuffer,
+                           vk::Buffer dstBuffer,
+                           vk::DeviceSize size);
 
     /**
      * Record halo unpack operation (write received data)
@@ -74,9 +79,10 @@ public:
      * @param waitValue Semaphore value to wait for
      */
     void recordHaloUnpack(vk::CommandBuffer cmd,
-                         uint32_t gpu,
-                         vk::Semaphore waitSem,
-                         uint64_t waitValue);
+                         vk::Buffer haloBuffer,
+                         vk::Buffer fieldBuffer,
+                         uint32_t offset,
+                         uint32_t count);
 
     /**
      * Create synchronization commands for a timestep
@@ -88,6 +94,11 @@ public:
 
 private:
     uint32_t m_gpuCount;
+    const core::VulkanContext& m_context;
+
+    vk::PipelineLayout m_pipelineLayout;
+    vk::Pipeline m_packPipeline;
+    vk::Pipeline m_unpackPipeline;
 
     // Barrier structures
     vk::MemoryBarrier createMemoryBarrier();

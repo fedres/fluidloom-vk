@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 5: Halo Exchange - FluidLoom Deep Dive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.7;
+            color: #e4e4e7;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            padding: 3rem 2rem;
+            margin-bottom: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(236, 72, 153, 0.3);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #f4f4f5;
+            opacity: 0.95;
+        }
+
+        .meta {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(236, 72, 153, 0.2);
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f9a8d4;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(249, 168, 212, 0.3);
+            padding-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #fbcfe8;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #86efac;
+        }
+
+        pre {
+            background: #1e1e2e;
+            border: 1px solid rgba(249, 168, 212, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #f8f8f2;
+        }
+
+        .diagram-box {
+            background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(249, 168, 212, 0.3);
+        }
+
+        .component-box {
+            background: rgba(236, 72, 153, 0.1);
+            border: 2px solid #ec4899;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .component-box h4 {
+            color: #f9a8d4;
+            margin-bottom: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(249, 168, 212, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+            border-left: 4px solid #f9a8d4;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        ul {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #a1a1aa;
+            font-size: 0.9rem;
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Module 5: Halo Exchange</h1>
+            <p class="subtitle">Inter-GPU Boundary Synchronization & Ghost Region Management</p>
+            <div class="meta">
+                <div class="meta-item">📦 Version: 0.1.0</div>
+                <div class="meta-item">🎯 Status: <span class="status-badge">Production Ready</span></div>
+                <div class="meta-item">⚡ Timeline Semaphores</div>
+            </div>
+        </header>
+
+        <section>
+            <h2>📋 Overview</h2>
+            <p>Module 5 manages the "ghost regions" or halos required for stencil operations that span GPU boundaries.
+                It orchestrates pack, transfer, and unpack operations with proper synchronization via timeline
+                semaphores.</p>
+            <div class="highlight-box">
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>6-Face Support</strong>: ±X, ±Y, ±Z boundary handling</li>
+                    <li><strong>Compute Shader Pack/Unpack</strong>: GPU-accelerated boundary extraction</li>
+                    <li><strong>Timeline Semaphores</strong>: Proper ordering across GPUs</li>
+                    <li><strong>Memory Barriers</strong>: compute → transfer → compute</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>🏗️ Architecture</h2>
+            <div class="diagram-box">
+                <h3>Halo Exchange Pipeline</h3>
+                <pre>
+GPU 0                              GPU 1
+┌───────────────┐                  ┌───────────────┐
+│ Field Buffer  │                  │ Field Buffer  │
+└───────┬───────┘                  └───────┬───────┘
+        │                                  │
+        ▼ PACK (compute shader)            │
+┌───────────────┐                          │
+│ Remote Halo   │                          │
+└───────┬───────┘                          │
+        │ BARRIER (compute → transfer)     │
+        │                                  │
+        ▼ TRANSFER (vkCmdCopyBuffer)       │
+        ├──────────────────────────────────▶┌───────────────┐
+                                            │ Local Halo    │
+                                            └───────┬───────┘
+                                │ BARRIER (transfer → compute)
+                                                    │
+                                            ▼ UNPACK (compute shader)
+                                            ┌───────────────┐
+                                            │ Field Buffer  │
+                                            │ (updated!)    │
+                                            └───────────────┘
+            </pre>
+            </div>
+
+            <div class="component-box">
+                <h4>HaloManager</h4>
+                <ul>
+                    <li>Allocates local and remote buffers for each face</li>
+                    <li>Manages buffer sets per field and domain</li>
+                    <li>Tracks halo voxel counts and dimensions</li>
+                    <li>Provides timeline semaphores for synchronization</li>
+                </ul>
+            </div>
+
+            <div class="component-box">
+                <h4>HaloSync</h4>
+                <ul>
+                    <li>Compiles pack.comp and unpack.comp shaders</li>
+                    <li>Records pack/unpack dispatch commands</li>
+                    <li>Records buffer copy commands for transfer</li>
+                    <li>Inserts memory barriers between stages</li>
+                </ul>
+            </div>
+        </section>
+
+        <section>
+            <h2>💻 Implementation Details</h2>
+            <h3>1. Buffer Allocation (HaloManager)</h3>
+            <pre><code>HaloBufferSet allocateHalos(FieldDesc& field, SubDomain& domain) {
+    HaloBufferSet set;
+    uint32_t thickness = 2;  // 2 voxels for 2nd-order stencils
+    
+    // Calculate face dimensions
+    auto dim = domain.bounds.dim();
+    std::array<vk::DeviceSize, 6> faceSizes = {
+        thickness * dim.y * dim.z,  // -X
+        thickness * dim.y * dim.z,  // +X
+        dim.x * thickness * dim.z,  // -Y
+        dim.x * thickness * dim.z,  // +Y
+        dim.x * dim.y * thickness,  // -Z
+        dim.x * dim.y * thickness   // +Z
+    };
+    
+    // Allocate buffers for each face
+    for (int face = 0; face < 6; face++) {
+        vk::DeviceSize size = faceSizes[face] * field.elementSize;
+        
+        set.localHalos[face] = allocator.createBuffer(
+            size,
+            vk::BufferUsageFlagBits::eStorageBuffer |
+            vk::BufferUsageFlagBits::eTransferDst);
+        
+        set.remoteHalos[face] = allocator.createBuffer(
+            size,
+            vk::BufferUsageFlagBits::eStorageBuffer |
+            vk::BufferUsageFlagBits::eTransferSrc);
+    }
+    
+    return set;
+}</code></pre>
+
+            <h3>2. Pack Shader (HaloSync)</h3>
+            <pre><code>// pack.comp - Extract boundary voxels
+#version 460
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_scalar_block_layout : require
+
+layout(local_size_x = 128) in;
+
+layout(push_constant) uniform PC {
+    uint64_t fieldAddr;
+    uint64_t haloAddr;
+    uint32_t offset;
+    uint32_t count;
+} pc;
+
+layout(buffer_reference, scalar) buffer FieldBuf { float data[]; };
+layout(buffer_reference, scalar) buffer HaloBuf { float data[]; };
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= pc.count) return;
+    
+    // Copy from field to halo
+    float val = FieldBuf(pc.fieldAddr).data[pc.offset + idx];
+    HaloBuf(pc.haloAddr).data[idx] = val;
+}</code></pre>
+
+            <h3>3. Halo Exchange (GraphExecutor)</h3>
+            <pre><code>void recordHaloExchange(vk::CommandBuffer cmd, SubDomain& domain) {
+    // 1. PACK: Extract boundary data
+    for (auto& [fieldName, field] : fields) {
+        auto& halos = haloManager.getHaloBufferSet(fieldName, domain.gpuIndex);
+        for (auto& neighbor : domain.neighbors) {
+            haloSync.recordHaloPack(cmd, field.buffer, halos.remoteHalos[neighbor.face], ...);
+        }
+    }
+    
+    // 2. BARRIER: Compute → Transfer
+    vk::MemoryBarrier barrier{
+        .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+        .dstAccessMask = vk::AccessFlagBits::eTransferRead
+    };
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                        vk::PipelineStageFlagBits::eTransfer,
+                        vk::DependencyFlags{}, barrier, nullptr, nullptr);
+    
+    // 3. TRANSFER: Copy to neighbor's local halo
+    for (auto& neighbor : domain.neighbors) {
+        uint32_t oppositeFace = (neighbor.face % 2 == 0) ? neighbor.face + 1 : neighbor.face - 1;
+        auto& neighborHalos = haloManager.getHaloBufferSet(fieldName, neighbor.gpuIndex);
+        
+        haloSync.recordHaloTransfer(cmd,
+            halos.remoteHalos[neighbor.face],
+            neighborHalos.localHalos[oppositeFace],
+            size);
+    }
+    
+    // 4. BARRIER: Transfer → Compute
+    barrier = {
+        .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+        .dstAccessMask = vk::AccessFlagBits::eShaderRead
+    };
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                        vk::PipelineStageFlagBits::eComputeShader,
+                        vk::DependencyFlags{}, barrier, nullptr, nullptr);
+    
+    // 5. UNPACK: Write to field buffer
+    for (auto& neighbor : domain.neighbors) {
+        haloSync.recordHaloUnpack(cmd, halos.localHalos[neighbor.face], field.buffer, ...);
+    }
+}</code></pre>
+        </section>
+
+        <section>
+            <h2>⚡ Synchronization</h2>
+            <div class="highlight-box">
+                <h3>Timeline Semaphores</h3>
+                <p>Each GPU pair has a timeline semaphore for ordering:</p>
+                <pre><code>// GPU 0 signals after pack+transfer
+vk::Semaphore sem01 = haloManager.getHaloSemaphore(0, 1);
+signalSemaphores.push_back(sem01);
+signalValues.push_back(currentFrame);
+
+// GPU 1 waits before unpack
+waitSemaphores.push_back(sem01);
+waitValues.push_back(currentFrame);</code></pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>✅ Production Readiness</h2>
+            <ul>
+                <li>✅ Pack/unpack compute shaders compiled</li>
+                <li>✅ BDA-based buffer access</li>
+                <li>✅ recordHaloPack/Unpack/Transfer implemented</li>
+                <li>✅ Memory barriers between stages</li>
+                <li>✅ Timeline semaphore integration</li>
+                <li>✅ 6-face topology support</li>
+                <li>✅ Integration with GraphExecutor</li>
+                <li>✅ Complete Doxygen documentation</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>🎯 Next Steps</h2>
+            <p>With Module 5 complete, multi-GPU simulations can exchange boundary data:</p>
+            <ul>
+                <li><strong>Module 6:</strong> Domain Decomposition - Split grids across GPUs</li>
+                <li><strong>Module 7:</strong> Execution Graph - Orchestrate full pipeline</li>
+            </ul>
+        </section>
+
+        <div class="footer">
+            <p>FluidLoom Engine © 2025 | Module 5 Documentation</p>
+        </div>
+    </div>
+</body>
+
+</html>

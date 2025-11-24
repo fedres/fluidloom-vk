@@ -2,6 +2,7 @@
 
 #include "core/VulkanContext.hpp"
 #include "halo/HaloManager.hpp"
+#include "halo/HaloSync.hpp"
 #include "field/FieldRegistry.hpp"
 #include "domain/DomainSplitter.hpp"
 #include "stencil/StencilRegistry.hpp"
@@ -69,10 +70,22 @@ public:
                            const std::vector<std::string>& schedule,
                            const domain::SubDomain& domain);
 
+    const std::vector<vk::Semaphore>& getWaitSemaphores() const { return m_waitSemaphores; }
+    const std::vector<vk::Semaphore>& getSignalSemaphores() const { return m_signalSemaphores; }
+    const std::vector<uint64_t>& getWaitValues() const { return m_waitValues; }
+    const std::vector<uint64_t>& getSignalValues() const { return m_signalValues; }
+
 private:
     const core::VulkanContext& m_context;
     halo::HaloManager& m_haloManager;
+    halo::HaloSync m_haloSync;
     const field::FieldRegistry& m_fieldRegistry;
+
+    // Semaphores for the current frame
+    std::vector<vk::Semaphore> m_waitSemaphores;
+    std::vector<uint64_t> m_waitValues;
+    std::vector<vk::Semaphore> m_signalSemaphores;
+    std::vector<uint64_t> m_signalValues;
 
     /**
      * Insert memory barrier between dependent stencils

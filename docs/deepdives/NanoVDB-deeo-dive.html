@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoVDB Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(94, 234, 212, 0.1);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #5eead4 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            color: #94a3b8;
+        }
+
+        .toc {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            position: sticky;
+            top: 120px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .toc h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #5eead4;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin-bottom: 0.5rem;
+        }
+
+        .toc a {
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .toc a:hover {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            transform: translateX(5px);
+        }
+
+        .section {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            scroll-margin-top: 120px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #5eead4;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(94, 234, 212, 0.2);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: #38bdf8;
+            margin: 1.5rem 0 0.8rem 0;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: #7dd3fc;
+            margin: 1.2rem 0 0.6rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+
+        code {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            color: #5eead4;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+        }
+
+        pre {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 8px;
+            padding: 1.2rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: #f8fafc;
+        }
+
+        .method-list {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+        }
+
+        .method-list ul {
+            list-style: none;
+        }
+
+        .method-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: #e2e8f0;
+        }
+
+        .method-list li:last-child {
+            border-bottom: none;
+        }
+
+        .method-list strong {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .note {
+            background: rgba(56, 189, 248, 0.1);
+            border-left: 4px solid #38bdf8;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .note p {
+            color: #e0f2fe;
+        }
+
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning p {
+            color: #fef3c7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(94, 234, 212, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h4 {
+            color: #5eead4;
+            margin-top: 0;
+        }
+
+        .card p {
+            color: #94a3b8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(94, 234, 212, 0.1);
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.8);
+            font-weight: 600;
+            color: #5eead4;
+        }
+
+        tr:hover {
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .highlight {
+            background: rgba(251, 191, 36, 0.15);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #fbbf24;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            color: #94a3b8;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #5eead4;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        @media (max-width: 768px) {
+            .toc {
+                position: static;
+                max-height: none;
+            }
+
+            header {
+                position: static;
+            }
+
+            .section {
+                scroll-margin-top: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>NanoVDB Documentation</h1>
+            <p class="subtitle">GPU-Accelerated Sparse Volumes - A compact, read-only representation of VDB data
+                structures</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#key-concepts">Key Concepts</a></li>
+                <li><a href="#installation">Installation & Build</a></li>
+                <li><a href="#core-classes">Core Classes</a></li>
+                <li><a href="#grid-creation">Grid Creation</a></li>
+                <li><a href="#file-io">File I/O Operations</a></li>
+                <li><a href="#accessors">Accessors & Data Access</a></li>
+                <li><a href="#cpu-examples">CPU Usage Examples</a></li>
+                <li><a href="#gpu-examples">GPU/CUDA Examples</a></li>
+                <li><a href="#rendering">Rendering Applications</a></li>
+                <li><a href="#collision-detection">Collision Detection</a></li>
+                <li><a href="#best-practices">Best Practices</a></li>
+                <li><a href="#api-reference">API Reference</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <section id="overview" class="section">
+                <h2>Overview</h2>
+                <p>NanoVDB is a compact, read-only representation of VDB data structures optimized for fast GPU and CPU
+                    traversal. It provides a flattened, linearized version of the traditional VDB tree that eliminates
+                    pointer chasing and enables efficient ray marching, collision detection, and volume rendering.</p>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>Key Features</h4>
+                        <ul>
+                            <li>GPU-accelerated sparse volume traversal</li>
+                            <li>Compact memory representation</li>
+                            <li>Pointer-less tree hierarchy</li>
+                            <li>Read-only optimized data structure</li>
+                            <li>Support for LevelSets, FogVolumes, and PointDataGrids</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Use Cases</h4>
+                        <ul>
+                            <li>Real-time volume rendering</li>
+                            <li>Collision detection in simulations</li>
+                            <li>Sparse volume processing on GPUs</li>
+                            <li>Efficient ray marching</li>
+                            <li>Procedural generation</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="key-concepts" class="section">
+                <h2>Key Concepts</h2>
+
+                <h3>Tree Structure</h3>
+                <p>NanoVDB uses a hierarchical tree structure similar to OpenVDB, but with a flattened representation:
+                </p>
+                <ul>
+                    <li><strong>Root Node:</strong> Top-level node containing tiles and child pointers</li>
+                    <li><strong>Internal Nodes:</strong> Intermediate levels (typically 2-3 levels)</li>
+                    <li><strong>Leaf Nodes:</strong> Contain actual voxel data (typically 8x8x8 voxels)</li>
+                </ul>
+
+                <h3>Memory Layout</h3>
+                <p>The NanoVDB format uses a compact, aligned data stream that can be efficiently transferred to GPU
+                    memory and traversed without pointer indirection. This enables significant performance improvements
+                    for read-heavy operations.</p>
+
+                <div class="note">
+                    <p><strong>Note:</strong> NanoVDB grids are read-only. For modifications, convert back to OpenVDB
+                        format, edit, then convert back to NanoVDB.</p>
+                </div>
+            </section>
+
+            <section id="installation" class="section">
+                <h2>Installation & Build</h2>
+
+                <h3>Building with OpenVDB</h3>
+                <p>NanoVDB is now a module of the larger OpenVDB project. Build both libraries together:</p>
+
+                <pre><code>mkdir build
+cd build
+cmake .. -DUSE_NANOVDB=ON -DTBB_ROOT=/path/to/tbb \
+         -DBOOST_ROOT=/path/to/boost -DBLOSC_ROOT=/path/to/blosc \
+         -DCMAKE_INSTALL_PREFIX=/install/path
+make -j 4 && make install</code></pre>
+
+                <h3>Dependencies</h3>
+                <table>
+                    <tr>
+                        <th>Dependency</th>
+                        <th>Required</th>
+                        <th>Purpose</th>
+                    </tr>
+                    <tr>
+                        <td>OpenVDB</td>
+                        <td>Optional</td>
+                        <td>Grid creation and conversion</td>
+                    </tr>
+                    <tr>
+                        <td>CUDA Toolkit</td>
+                        <td>Optional</td>
+                        <td>GPU acceleration</td>
+                    </tr>
+                    <tr>
+                        <td>TBB</td>
+                        <td>Yes (for OpenVDB)</td>
+                        <td>Multi-threading</td>
+                    </tr>
+                    <tr>
+                        <td>Boost</td>
+                        <td>Yes (for OpenVDB)</td>
+                        <td>Utilities</td>
+                    </tr>
+                </table>
+            </section>
+
+            <section id="core-classes" class="section">
+                <h2>Core Classes</h2>
+
+                <h3>GridHandle&lt;BufferT&gt;</h3>
+                <p>Manages the lifecycle of a NanoVDB grid, including memory allocation and device transfers.</p>
+
+                <div class="method-list">
+                    <h4>Key Methods:</h4>
+                    <ul>
+                        <li><code>grid&lt;ValueT&gt;()</code> - Returns CPU pointer to grid data</li>
+                        <li><code>deviceGrid&lt;ValueT&gt;()</code> - Returns GPU device pointer</li>
+                        <li><code>deviceUpload(stream, sync)</code> - Upload data to GPU</li>
+                        <li><code>deviceDownload(stream, sync)</code> - Download data from GPU</li>
+                        <li><code>size()</code> - Returns buffer size in bytes</li>
+                    </ul>
+                </div>
+
+                <h3>NanoGrid&lt;BuildT&gt;</h3>
+                <p>The main grid class representing the VDB tree structure.</p>
+
+                <div class="method-list">
+                    <h4>Key Methods:</h4>
+                    <ul>
+                        <li><code>tree()</code> - Returns reference to the tree</li>
+                        <li><code>worldBoundingBox()</code> - Returns world-space bounds</li>
+                        <li><code>indexBoundingBox()</code> - Returns index-space bounds</li>
+                        <li><code>voxelSize()</code> - Returns voxel size</li>
+                        <li><code>worldToIndexF()/indexToWorldF()</code> - Coordinate transformations</li>
+                        <li><code>gridClass()</code> - Returns grid classification</li>
+                        <li><code>gridType()</code> - Returns grid type</li>
+                    </ul>
+                </div>
+
+                <h3>ReadAccessor&lt;ValueT, NodeT&gt;</h3>
+                <p>Optimized accessor for fast data reads with cached tree traversal.</p>
+
+                <div class="method-list">
+                    <h4>Key Methods:</h4>
+                    <ul>
+                        <li><code>getValue(ijk)</code> - Get value at coordinate</li>
+                        <li><code>getValue(offset)</code> - Get value at linear offset</li>
+                        <li><code>setValue(ijk, value)</code> - Set value at coordinate (if mutable)</li>
+                        <li><code>probeValue(ijk, value)</code> - Check if coordinate is active and get value</li>
+                        <li><code>probeLeaf(ijk)</code> - Get leaf node at coordinate</li>
+                        <li><code>isActive(ijk)</code> - Check if voxel is active</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="grid-creation" class="section">
+                <h2>Grid Creation</h2>
+
+                <h3>From OpenVDB</h3>
+                <p>Convert existing OpenVDB grids to NanoVDB format:</p>
+
+                <pre><code>// OpenVDB grid
+auto srcGrid = openvdb::tools::createLevelSetSphere&lt;openvdb::FloatGrid&gt;(
+    100.0f, openvdb::Vec3f(0.0f), 1.0f
+);
+
+// Convert to NanoVDB
+auto handle = nanovdb::createNanoGrid(*srcGrid);
+auto* nanoGrid = handle.grid&lt;float&gt;();</code></pre>
+
+                <h3>Creating Primitives</h3>
+                <p>NanoVDB provides utility functions to create common primitives:</p>
+
+                <pre><code>// Level set sphere
+auto sphereHandle = nanovdb::createLevelSetSphere(
+    50.0f,                    // radius
+    nanovdb::Vec3f(0.0f),     // center
+    1.0f,                     // voxel size
+    3.0f                      // half-width
+);
+
+// Level set box
+auto boxHandle = nanovdb::createLevelSetBBox(
+    40.0f, 60.0f, 100.0f,    // width, height, depth
+    10.0f,                    // thickness
+    nanovdb::Vec3f(0.0f),     // center
+    1.0f,                     // voxel size
+    3.0f                      // half-width
+);
+
+// Point box
+auto pointsHandle = nanovdb::createPointBox(
+    1,                        // points per voxel
+    40.0f, 60.0f, 100.0f,    // dimensions
+    nanovdb::Vec3f(0.0f),     // center
+    1.0f,                     // voxel size
+    "box_points"              // name
+);</code></pre>
+
+                <h3>Custom Grid Generation</h3>
+                <p>Generate grids using lambda functions:</p>
+
+                <pre><code>nanovdb::GridBuilder builder(0);
+auto op = [](const nanovdb::Coord&amp; ijk) -&gt; float {
+    return menger(nanovdb::Vec3f(ijk) * 0.01f);
+};
+
+builder(op, nanovdb::CoordBBox(
+    nanovdb::Coord(-100), 
+    nanovdb::Coord(100)
+));
+
+auto handle = builder.getHandle&lt;&gt;(
+    1.0,                          // voxel size
+    nanovdb::Vec3d(0),           // origin
+    "menger",                     // name
+    nanovdb::GridClass::FogVolume // grid class
+);</code></pre>
+            </section>
+
+            <section id="file-io" class="section">
+                <h2>File I/O Operations</h2>
+
+                <h3>Writing Grids</h3>
+                <pre><code>#include &lt;nanovdb/util/IO.h&gt;
+
+// Write to NanoVDB file format
+nanovdb::io::writeGrid("sphere.nvdb", handle);
+
+// Write multiple grids
+std::vector&lt;nanovdb::GridHandle&lt;&gt;&gt; handles;
+handles.push_back(handle1);
+handles.push_back(handle2);
+nanovdb::io::writeGrids("volumes.nvdb", handles);</code></pre>
+
+                <h3>Reading Grids</h3>
+                <pre><code>// Read single grid
+auto handle = nanovdb::io::readGrid("sphere.nvdb");
+auto* grid = handle.grid&lt;float&gt;();
+
+// Read all grids from file
+auto handles = nanovdb::io::readGrids("volumes.nvdb");
+for (auto&amp; h : handles) {
+    auto* g = h.grid&lt;float&gt;();
+    // Process grid...
+}
+
+// Read with specific buffer type (GPU)
+auto cudaHandle = nanovdb::io::readGrid&lt;nanovdb::CudaDeviceBuffer&gt;("sphere.nvdb");</code></pre>
+
+                <div class="warning">
+                    <p><strong>Note:</strong> NanoVDB files are essentially dumps of the in-memory representation with
+                        metadata for efficient inspection. They are not directly compatible with OpenVDB .vdb files.</p>
+                </div>
+            </section>
+
+            <section id="accessors" class="section">
+                <h2>Accessors & Data Access</h2>
+
+                <h3>CPU Accessors</h3>
+                <pre><code>auto acc = grid-&gt;getAccessor();
+
+// Get value at coordinate
+float value = acc.getValue(nanovdb::Coord(100, 0, 0));
+
+// Check if active and get value
+float v;
+if (acc.probeValue(nanovdb::Coord(100, 0, 0), v)) {
+    // Coordinate is active, v contains value
+}
+
+// Get leaf node
+const auto* leaf = acc.probeLeaf(nanovdb::Coord(100, 0, 0));
+if (leaf) {
+    // Operate on leaf node
+}</code></pre>
+
+                <h3>ReadAccessor Optimization</h3>
+                <p>For performance-critical code, use ReadAccessor which caches tree traversal:</p>
+
+                <pre><code>auto acc = grid-&gt;tree().getAccessor&lt;true&gt;(); // true for caching
+
+// First access is slower (full traversal)
+float v1 = acc.getValue(nanovdb::Coord(100, 0, 0));
+
+// Subsequent nearby accesses are faster (cached)
+float v2 = acc.getValue(nanovdb::Coord(101, 0, 0));</code></pre>
+
+                <h3>Node Iteration</h3>
+                <pre><code>// Iterate over leaf nodes
+for (auto leaf = grid-&gt;tree().beginLeaf(); leaf; ++leaf) {
+    // Process leaf node
+    auto bbox = leaf->getNodeBoundingBox();
+    auto values = leaf->values();
+    
+    for (uint32_t i = 0; i < leaf->size(); ++i) {
+        float value = values[i];
+        // Process voxel value
+    }
+}</code></pre>
+            </section>
+
+            <section id="cpu-examples" class="section">
+                <h2>CPU Usage Examples</h2>
+
+                <h3>Hello World Example</h3>
+                <p>Create a level set sphere, convert to NanoVDB, and query values:</p>
+
+                <pre><code>#include &lt;nanovdb/NanoVDB.h&gt;
+#include &lt;nanovdb/util/IO.h&gt;
+#include &lt;openvdb/tools/LevelSetSphere.h&gt;
+
+int main() {
+    try {
+        // Create OpenVDB level set sphere
+        auto srcGrid = openvdb::tools::createLevelSetSphere&lt;openvdb::FloatGrid&gt;(
+            100.0f, openvdb::Vec3f(0.0f), 1.0f
+        );
+        
+        // Convert to NanoVDB
+        auto handle = nanovdb::createNanoGrid(*srcGrid);
+        
+        // Get NanoVDB grid
+        auto* dstGrid = handle.grid&lt;float&gt;();
+        if (!dstGrid) {
+            throw std::runtime_error("GridHandle does not contain a grid with value type float");
+        }
+        
+        // Create accessors
+        auto dstAcc = dstGrid-&gt;getAccessor();
+        auto srcAcc = srcGrid-&gt;getAccessor();
+        
+        // Compare values
+        for (int i = 97; i &lt; 104; ++i) {
+            printf("(%3i,0,0) OpenVDB: % -4.2f, NanoVDB: % -4.2f\n",
+                i,
+                srcAcc.getValue(openvdb::Coord(i, 0, 0)),
+                dstAcc.getValue(nanovdb::Coord(i, 0, 0))
+            );
+        }
+        
+        // Save to file
+        nanovdb::io::writeGrid("sphere.nvdb", handle);
+    }
+    catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; "Exception: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+    
+    return 0;
+}</code></pre>
+
+                <h3>Reading and Querying</h3>
+                <pre><code>#include &lt;nanovdb/NanoVDB.h&gt;
+#include &lt;nanovdb/util/IO.h&gt;
+
+int main() {
+    try {
+        // Read grid from file
+        auto handle = nanovdb::io::readGrid("sphere.nvdb");
+        auto* grid = handle.grid&lt;float&gt;();
+        
+        if (!grid) {
+            throw std::runtime_error("File did not contain a grid with value type float");
+        }
+        
+        // Create accessor
+        auto acc = grid-&gt;getAccessor();
+        
+        // Query values along X-axis
+        for (int i = 97; i &lt; 104; ++i) {
+            float value = acc.getValue(nanovdb::Coord(i, 0, 0));
+            printf("(%3i,0,0) NanoVDB: % -4.2f\n", i, value);
+        }
+        
+        // Get grid information
+        printf("Grid name: %s\n", grid-&gt;shortGridName());
+        printf("Voxel size: %f\n", grid-&gt;voxelSize());
+        printf("World bbox: [%f, %f, %f] to [%f, %f, %f]\n",
+            grid-&gt;worldBoundingBox().min()[0],
+            grid-&gt;worldBoundingBox().min()[1],
+            grid-&gt;worldBoundingBox().min()[2],
+            grid-&gt;worldBoundingBox().max()[0],
+            grid-&gt;worldBoundingBox().max()[1],
+            grid-&gt;worldBoundingBox().max()[2]
+        );
+    }
+    catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; "Exception: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+    
+    return 0;
+}</code></pre>
+            </section>
+
+            <section id="gpu-examples" class="section">
+                <h2>GPU/CUDA Examples</h2>
+
+                <h3>Basic CUDA Setup</h3>
+                <pre><code>#include &lt;nanovdb/NanoVDB.h&gt;
+#include &lt;nanovdb/util/IO.h&gt;
+#include &lt;nanovdb/util/cuda/CudaDeviceBuffer.h&gt;
+
+// CUDA kernel for grid processing
+__global__ void processGrid(const nanovdb::NanoGrid&lt;float&gt;* grid, float* result) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    // Get accessor
+    auto acc = grid-&gt;tree().getAccessor();
+    
+    // Process voxel data
+    // ... kernel implementation ...
+}
+
+int main() {
+    try {
+        // Read grid with CUDA buffer
+        auto handle = nanovdb::io::readGrid&lt;nanovdb::CudaDeviceBuffer&gt;("sphere.nvdb");
+        
+        // Create CUDA stream
+        cudaStream_t stream;
+        cudaStreamCreate(&amp;stream);
+        
+        // Upload to device
+        handle.deviceUpload(stream, false);
+        
+        // Get CPU and device pointers
+        auto* cpuGrid = handle.grid&lt;float&gt;();
+        auto* deviceGrid = handle.deviceGrid&lt;float&gt;();
+        
+        if (!deviceGrid || !cpuGrid) {
+            throw std::runtime_error("GridHandle did not contain a grid with value type float");
+        }
+        
+        // Launch kernel
+        launchKernels(deviceGrid, cpuGrid, stream);
+        
+        // Cleanup
+        cudaStreamDestroy(stream);
+    }
+    catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; "Exception: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+    
+    return 0;
+}</code></pre>
+
+                <h3>Sample CUDA Kernel</h3>
+                <pre><code>// In a .cu file
+#include &lt;nanovdb/NanoVDB.h&gt;
+#include &lt;stdio.h&gt;
+
+__global__ void sampleValues(const nanovdb::NanoGrid&lt;float&gt;* grid, float* output) {
+    int idx = threadIdx.x;
+    if (idx > 6) return;
+    
+    int i = 97 + idx;
+    
+    // Create accessor
+    auto acc = grid-&gt;tree().getAccessor();
+    
+    // Sample value
+    float value = acc.getValue(nanovdb::Coord(i, 0, 0));
+    
+    // Store result
+    output[idx] = value;
+    
+    printf("(%3i,0,0) NanoVDB GPU: % -4.2f\n", i, value);
+}</code></pre>
+
+                <div class="note">
+                    <p><strong>Tip:</strong> Always use <code>ReadAccessor</code> in CUDA kernels for optimal
+                        performance. The cached tree traversal significantly reduces memory access overhead when
+                        sampling multiple nearby voxels.</p>
+                </div>
+            </section>
+
+            <section id="rendering" class="section">
+                <h2>Rendering Applications</h2>
+
+                <h3>Volume Rendering with Ray Marching</h3>
+                <pre><code>__hostdev__ void renderTransmittance(
+    const nanovdb::NanoGrid&lt;float&gt;* grid,
+    const nanovdb::Ray&lt;float&gt;&amp; wRay,
+    float* image, int w, int h, int pixelIdx
+) {
+    // Transform ray to index space
+    nanovdb::Ray&lt;float&gt; iRay = wRay.worldToIndexF(*grid);
+    
+    // Clip to grid bounds
+    if (!iRay.clip(grid-&gt;tree().bbox())) {
+        image[pixelIdx] = 1.0f; // Background
+        return;
+    }
+    
+    // Get accessor for efficient sampling
+    auto acc = grid-&gt;tree().getAccessor();
+    
+    // Ray march integration
+    float transmittance = 1.0f;
+    float dt = 0.1f; // Step size
+    
+    for (float t = iRay.t0(); t &lt; iRay.t1(); t += dt) {
+        nanovdb::Coord ijk = nanovdb::Coord::Floor(iRay(t));
+        float sigma = acc.getValue(ijk);
+        transmittance *= 1.0f - sigma * dt;
+    }
+    
+    image[pixelIdx] = transmittance;
+}</code></pre>
+
+                <h3>Level Set Rendering with HDDA</h3>
+                <p>NanoVDB provides hierarchical DDA for efficient empty space skipping:</p>
+
+                <pre><code>__hostdev__ void renderLevelSet(
+    const nanovdb::NanoGrid&lt;float&gt;* grid,
+    const nanovdb::Ray&lt;float&gt;&amp; wRay,
+    float* depthImage, int w, int h, int pixelIdx
+) {
+    // Transform ray and get accessor
+    nanovdb::Ray&lt;float&gt; iRay = wRay.worldToIndexF(*grid);
+    auto acc = grid-&gt;tree().getAccessor();
+    
+    // Find zero crossing
+    nanovdb::Coord ijk;
+    float v, iT0;
+    
+    if (nanovdb::ZeroCrossing(iRay, acc, ijk, v, iT0)) {
+        // Convert to world space depth
+        float wT0 = iT0 * grid-&gt;voxelSize();
+        depthImage[pixelIdx] = wT0;
+    } else {
+        depthImage[pixelIdx] = 0.0f; // Miss
+    }
+}</code></pre>
+            </section>
+
+            <section id="collision-detection" class="section">
+                <h2>Collision Detection</h2>
+
+                <p>NanoVDB excels at collision detection due to its efficient lookup of signed distance values.</p>
+
+                <pre><code>__hostdev__ void handleCollisions(
+    const nanovdb::NanoGrid&lt;float&gt;* grid,
+    nanovdb::Vec3f* positions,
+    nanovdb::Vec3f* velocities,
+    float dt, int numParticles
+) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= numParticles) return;
+    
+    // Predict next position
+    nanovdb::Vec3f wPos = positions[i];
+    nanovdb::Vec3f wVel = velocities[i];
+    nanovdb::Vec3f wNextPos = wPos + wVel * dt;
+    
+    // Transform to index space
+    nanovdb::Vec3f iNextPos = grid-&gt;worldToIndexF(wNextPos);
+    nanovdb::Coord ijk = nanovdb::Coord::Floor(iNextPos);
+    
+    // Get accessor
+    auto acc = grid-&gt;tree().getAccessor();
+    
+    // Check if in narrow band
+    if (grid-&gt;tree().isActive(ijk)) {
+        float wDistance = acc.getValue(ijk);
+        
+        // Check if inside level set
+        if (wDistance <= 0.0f) {
+            // Compute normal for collision resolution
+            nanovdb::Vec3f normal(wDistance);
+            
+            ijk[0] += 1;
+            normal[0] = acc.getValue(ijk) - wDistance;
+            ijk[0] -= 1;
+            
+            ijk[1] += 1;
+            normal[1] = acc.getValue(ijk) - wDistance;
+            ijk[1] -= 1;
+            
+            ijk[2] += 1;
+            normal[2] = acc.getValue(ijk) - wDistance;
+            
+            normal.normalize();
+            
+            // Resolve collision
+            wNextPos -= normal * wDistance; // Push out
+            wVel -= normal * dot(wVel, normal); // Reflect velocity
+        }
+    }
+    
+    positions[i] = wNextPos;
+    velocities[i] = wVel;
+}</code></pre>
+            </section>
+
+            <section id="best-practices" class="section">
+                <h2>Best Practices</h2>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>Performance</h4>
+                        <ul>
+                            <li>Use <code>ReadAccessor</code> for repeated queries</li>
+                            <li>Prefer linear access patterns when possible</li>
+                            <li>Batch GPU operations for efficiency</li>
+                            <li>Use hierarchical DDA for ray marching</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Memory Management</h4>
+                        <ul>
+                            <li>Use <code>CudaDeviceBuffer</code> for GPU data</li>
+                            <li>Batch uploads/downloads when possible</li>
+                            <li>Reuse GridHandles to avoid allocations</li>
+                            <li>Prefer const access for read-only data</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Common Pitfalls</h3>
+                <ul>
+                    <li><strong>Grid type mismatch:</strong> Always verify template parameters match actual grid data
+                    </li>
+                    <li><strong>Buffer lifecycle:</strong> Ensure GridHandle outlives all grid pointers</li>
+                    <li><strong>CUDA streams:</strong> Use streams for asynchronous operations</li>
+                    <li><strong>Coordinate spaces:</strong> Remember to transform between world and index space</li>
+                    <li><strong>Active state:</strong> Check voxel activity before accessing values</li>
+                </ul>
+
+                <div class="warning">
+                    <p><strong>Important:</strong> NanoVDB grids are read-only. Any modifications require converting to
+                        OpenVDB, editing, and converting back. Attempting to modify a NanoVDB grid directly results in
+                        undefined behavior.</p>
+                </div>
+            </section>
+
+            <section id="api-reference" class="section">
+                <h2>API Reference</h2>
+
+                <h3>Creation Functions (nanovdb namespace)</h3>
+                <div class="method-list">
+                    <ul>
+                        <li><code>createLevelSetSphere&lt;ValueT, BufferT&gt;</code> - Create level set sphere</li>
+                        <li><code>createLevelSetBBox&lt;ValueT, BufferT&gt;</code> - Create level set box</li>
+                        <li><code>createLevelSetOctahedron&lt;ValueT, BufferT&gt;</code> - Create level set octahedron
+                        </li>
+                        <li><code>createPointBox&lt;ValueT, BufferT&gt;</code> - Create point box</li>
+                        <li><code>createPointScatter&lt;ValueT, BufferT&gt;</code> - Scatter points in active voxels
+                        </li>
+                        <li><code>createNanoGrid&lt;GridT, ValueT, BufferT&gt;</code> - Convert OpenVDB to NanoVDB</li>
+                    </ul>
+                </div>
+
+                <h3>Grid Operations</h3>
+                <div class="method-list">
+                    <h4>Transformations:</h4>
+                    <ul>
+                        <li><code>worldToIndexF(v)</code> - World to index space (float)</li>
+                        <li><code>indexToWorldF(v)</code> - Index to world space (float)</li>
+                        <li><code>worldToIndex(v)</code> - World to index space (coord)</li>
+                        <li><code>indexToWorld(v)</code> - Index to world space (coord)</li>
+                    </ul>
+
+                    <h4>Queries:</h4>
+                    <ul>
+                        <li><code>getValue(ijk)</code> - Get value at coordinate</li>
+                        <li><code>probeValue(ijk, v)</code> - Get value and activity</li>
+                        <li><code>isActive(ijk)</code> - Check if voxel active</li>
+                        <li><code>tree().bbox()</code> - Get tree bounds</li>
+                        <li><code>worldBoundingBox()</code> - Get world bounds</li>
+                    </ul>
+
+                    <h4>Statistics:</h4>
+                    <ul>
+                        <li><code>tree().average()</code> - Get average value</li>
+                        <li><code>tree().minimum()</code> - Get minimum value</li>
+                        <li><code>tree().maximum()</code> - Get maximum value</li>
+                        <li><code>tree().variance()</code> - Get variance</li>
+                    </ul>
+                </div>
+
+                <h3>Advanced Node Access</h3>
+                <pre><code>// Get first node of specific type
+const auto* leaf = grid-&gt;tree().getFirstNode&lt;0&gt;(); // Leaf level
+const auto* node1 = grid-&gt;tree().getFirstNode&lt;1&gt;(); // First internal level
+
+// Get node info at coordinate
+auto nodeInfo = grid-&gt;tree().getNodeInfo(ijk);
+// nodeInfo.level, nodeInfo.origin, nodeInfo.dim, nodeInfo.valueMask
+
+// Check grid statistics
+if (grid-&gt;hasMinMax()) {
+    float minVal = grid-&gt;minimum();
+    float maxVal = grid-&gt;maximum();
+}</code></pre>
+            </section>
+        </main>
+
+        <footer>
+            <p>NanoVDB Documentation | Based on OpenVDB Project | <a href="https://www.openvdb.org"
+                    style="color: #5eead4;">openvdb.org</a></p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">
+                For complete API reference, see <a
+                    href="https://academysoftwarefoundation.github.io/openvdb/namespacenanovdb.html"
+                    style="color: #38bdf8;">Official API Docs</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // Smooth scrolling for table of contents
+        document.querySelectorAll('.toc a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Update URL without jumping
+                    history.pushState(null, null, this.getAttribute('href'));
+                }
+            });
+        });
+
+        // Highlight active section in TOC
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section');
+            const tocLinks = document.querySelectorAll('.toc a');
+
+            let current = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.style.background = '';
+                link.style.color = '';
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.style.background = 'rgba(56, 189, 248, 0.2)';
+                    link.style.color = '#38bdf8';
+                }
+            });
+        });
+
+        // Copy code button functionality
+        document.querySelectorAll('pre').forEach(pre => {
+            const button = document.createElement('button');
+            button.textContent = 'Copy';
+            button.style.cssText = `
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: rgba(30, 41, 59, 0.8);
+                border: 1px solid rgba(94, 234, 212, 0.2);
+                color: #5eead4;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                transition: all 0.3s ease;
+            `;
+
+            pre.style.position = 'relative';
+            pre.appendChild(button);
+
+            button.addEventListener('click', () => {
+                const code = pre.querySelector('code');
+                navigator.clipboard.writeText(code.textContent).then(() => {
+                    button.textContent = 'Copied!';
+                    button.style.background = 'rgba(56, 189, 248, 0.2)';
+                    button.style.color = '#38bdf8';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                        button.style.background = 'rgba(30, 41, 59, 0.8)';
+                        button.style.color = '#5eead4';
+                    }, 2000);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
