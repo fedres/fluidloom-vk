@@ -7,6 +7,19 @@
 #include "script/SimulationEngine.hpp"
 #include "core/Logger.hpp"
 
+/*
+  ______ _       _     _ _                     
+ |  ____| |     (_)   | | |                    
+ | |__  | |_   _ _  __| | |     ___   ___  _ __ ___ 
+ |  __| | | | | | |/ _` | |    / _ \ / _ \| '_ ` _ \
+ | |    | | |_| | | (_| | |___| (_) | (_) | | | | | |
+ |_|    |_|\__,_|_|\__,_|______\___/ \___/|_| |_| |_|
+                                                     
+  FluidLoom - GPU-Accelerated Fluid Simulation Engine
+  
+  Author: zombie aka Karthik Thyagarajan
+*/
+
 #include <iostream>
 #include <filesystem>
 
